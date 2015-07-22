@@ -30,8 +30,9 @@ namespace HeavenSTrikeAzir
 
         private static bool qeWaitQ, waitEjumpTarget, setEjumpTarget, waitQjumpTarget, setQjumpTarget;
         private static bool waitEjumpmouse, setEjumpMouse, waitQjumpmouse, setQjumpMouse;
+        private static bool waitEjumpmax, setEjumpMax, waitQjumpmax, setQjumpMax;
 
-        private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse;
+        private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse, posEjumpMax,posQjumpMax;
 
         private static int qcount;
 
@@ -68,6 +69,7 @@ namespace HeavenSTrikeAzir
             //spell menu
             Menu spellMenu = _menu.AddSubMenu(new Menu("Spells", "Spells"));
             spellMenu.AddItem(new MenuItem("EQmouse", "E Q to mouse").SetValue(new KeyBind('G', KeyBindType.Press)));
+            spellMenu.AddItem(new MenuItem("EQmax", "E Q to max").SetValue(new KeyBind('H', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("knocktarget", "E-Q Selected Target").SetValue(new KeyBind('T', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insec", "Insec Selected").SetValue(new KeyBind('Y', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse"},0)));
@@ -109,6 +111,7 @@ namespace HeavenSTrikeAzir
                 if (target.IsValidTarget(250)) _r.Cast(target.Position);
             }
         }
+        private static bool eqmax { get { return _menu.Item("EQmax").GetValue<KeyBind>().Active; } }
         private static bool eqmouse { get { return _menu.Item("EQmouse").GetValue<KeyBind>().Active; } }
         private static bool RTOWER { get { return _menu.Item("RTOWER").GetValue<bool>(); } }
         private static bool RKS { get { return _menu.Item("RKS").GetValue<bool>(); } }
@@ -139,6 +142,10 @@ namespace HeavenSTrikeAzir
                 {
                    waitQjumpmouse = false;
                 }
+                if (eqmax)
+                {
+                    waitQjumpmax = false;
+                }
             }
             if (args.SData.Name.ToLower().Contains("azirw"))
             {
@@ -153,6 +160,12 @@ namespace HeavenSTrikeAzir
                     waitEjumpmouse = true;
                     setEjumpMouse = false;
                     setQjumpMouse = true;
+                }
+                if (eqmax && setEjumpMax)
+                {
+                    waitEjumpmax = true;
+                    setEjumpMax = false;
+                    setQjumpMax = true;
                 }
             }
             if (args.SData.Name.ToLower().Contains("azire"))
@@ -169,6 +182,12 @@ namespace HeavenSTrikeAzir
                     waitQjumpmouse = true;
                     setQjumpMouse = false;
                 }
+                if (eqmax && setQjumpMax)
+                {
+                    waitEjumpmax = false;
+                    waitQjumpmax = true;
+                    setQjumpMax = false;
+                }
             }
             if (args.SData.Name.ToLower().Contains("azirr"))
             {
@@ -180,6 +199,11 @@ namespace HeavenSTrikeAzir
         {
             // azir soldier
             azirsoldier();
+            //if (soldier.Any())
+            //{
+            //    //Game.Say(soldier.Count.ToString());
+            //    Game.Say(soldier.Last().Position.Distance(Player.Position).ToString());
+            //}
             //auto
             Auto();
             //azir();
@@ -208,6 +232,19 @@ namespace HeavenSTrikeAzir
                 waitEjumpmouse = false;
                 setQjumpMouse = false;
                 setEjumpMouse = false;
+            }
+            if (eqmax)
+            {
+                JumpToMax();
+                solvejumptomax();
+                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else
+            {
+                waitQjumpmax = false;
+                waitEjumpmax = false;
+                setQjumpMax = false;
+                setEjumpMax = false;
             }
             if (knocktarget)
             {
@@ -335,6 +372,90 @@ namespace HeavenSTrikeAzir
                             : tar.Position;
                         _w.Cast(x);
                     }
+                }
+            }
+
+        }
+        private static void JumpToMax()
+        {
+            if (setEjumpMax || setQjumpMax || waitEjumpmax || waitQjumpmax) return;
+            if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
+            {
+                if (soldier.Any())
+                {
+                    var Sold = soldier.OrderByDescending(x => x.Position.Distance(Game.CursorPos)).LastOrDefault();
+                    var disSold = Sold.Position.Distance(Game.CursorPos);
+                    if (!_w.IsReady())
+                    {
+                        if (Sold.Position.Distance(Game.CursorPos) < Player.Distance(Game.CursorPos) && Player.Distance(Sold.Position) >= _w.Range)
+                        {
+                            if (Player.Distance(Sold.Position) <= 1200)
+                            {
+                                _e.Cast(Sold.Position);
+                                setQjumpMax = true;
+                                posQjumpMax = Sold.Position.Extend(Game.CursorPos, _q.Range - 600);
+                                return;
+                            }
+                        }
+                    }
+                    else if (_w.IsReady())
+                    {
+                   
+                        if (Sold.Position.Distance(Game.CursorPos) < Player.Distance(Game.CursorPos) && Player.Distance(Sold.Position) >= _w.Range
+                            && Player.Distance(Sold.Position) <= 1200 )
+                        {
+                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                            if (Game.CursorPos.Distance(Sold.Position) < Game.CursorPos.Distance(posW))
+                            {
+                                _e.Cast(Sold.Position);
+                                setQjumpMax = true;
+                                posQjumpMax = Sold.Position.Extend(Game.CursorPos, _q.Range - 600);
+                                return;
+                            }
+                            else
+                            {
+                                _w.Cast(posW);
+                                posEjumpMax = posW;
+                                setEjumpMax = true;
+                                posQjumpMax = posW.Extend(Game.CursorPos, _q.Range - 600);
+                                return;
+                            }
+                           
+                        }
+                        else
+                        {
+                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                            _w.Cast(posW);
+                            posEjumpMax = posW;
+                            setEjumpMax = true;
+                            posQjumpMax = posW.Extend(Game.CursorPos, _q.Range - 600);
+                            return;
+                        }
+                    }
+
+                }
+                else if (_w.IsReady())
+                {
+                    var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                    _w.Cast(posW);
+                    posEjumpMax = posW;
+                    setEjumpMax = true;
+                    posQjumpMax = posW.Extend(Game.CursorPos, _q.Range - 600);
+                    return;
+                }
+            }
+        }
+        private static void solvejumptomax()
+        {
+            if (waitEjumpmax == true)
+            {
+                _e.Cast(posEjumpMax);
+            }
+            if (waitQjumpmax == true)
+            {
+                if (Player.ServerPosition.Distance(posQjumpMax) <= _q.Range - 300)
+                {
+                    _q.Cast(posQjumpMax);
                 }
             }
 
