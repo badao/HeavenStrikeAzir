@@ -29,8 +29,9 @@ namespace HeavenSTrikeAzir
         private static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
 
         private static bool qeWaitQ, waitEjumpTarget, setEjumpTarget, waitQjumpTarget, setQjumpTarget;
+        private static bool waitEjumpmouse, setEjumpMouse, waitQjumpmouse, setQjumpMouse;
 
-        private static Vector3 qePosQ, posEjumpTarget;
+        private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse;
 
         private static int qcount;
 
@@ -66,6 +67,7 @@ namespace HeavenSTrikeAzir
             TargetSelector.AddToMenu(ts);
             //spell menu
             Menu spellMenu = _menu.AddSubMenu(new Menu("Spells", "Spells"));
+            spellMenu.AddItem(new MenuItem("EQmouse", "E Q to mouse").SetValue(new KeyBind('G', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("knocktarget", "E-Q Selected Target").SetValue(new KeyBind('T', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insec", "Insec Selected").SetValue(new KeyBind('Y', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse"},0)));
@@ -107,6 +109,7 @@ namespace HeavenSTrikeAzir
                 if (target.IsValidTarget(250)) _r.Cast(target.Position);
             }
         }
+        private static bool eqmouse { get { return _menu.Item("EQmouse").GetValue<KeyBind>().Active; } }
         private static bool RTOWER { get { return _menu.Item("RTOWER").GetValue<bool>(); } }
         private static bool RKS { get { return _menu.Item("RKS").GetValue<bool>(); } }
         private static bool RGAP { get { return _menu.Item("RGAP").GetValue<bool>(); } }
@@ -132,6 +135,10 @@ namespace HeavenSTrikeAzir
                 {
                     waitQjumpTarget = false;
                 }
+                if (eqmouse)
+                {
+                   waitQjumpmouse = false;
+                }
             }
             if (args.SData.Name.ToLower().Contains("azirw"))
             {
@@ -141,6 +148,12 @@ namespace HeavenSTrikeAzir
                     setEjumpTarget = false;
                     setQjumpTarget = true;
                 }
+                if (eqmouse && setEjumpMouse)
+                {
+                    waitEjumpmouse = true;
+                    setEjumpMouse = false;
+                    setQjumpMouse = true;
+                }
             }
             if (args.SData.Name.ToLower().Contains("azire"))
             {
@@ -149,6 +162,12 @@ namespace HeavenSTrikeAzir
                     waitEjumpTarget = false;
                     waitQjumpTarget = true;
                     setQjumpTarget = false;
+                }
+                if (eqmouse && setQjumpMouse)
+                {
+                    waitEjumpmouse = false;
+                    waitQjumpmouse = true;
+                    setQjumpMouse = false;
                 }
             }
             if (args.SData.Name.ToLower().Contains("azirr"))
@@ -177,6 +196,19 @@ namespace HeavenSTrikeAzir
             //qe
             //if (_menu.Item(spellEQtoMouse).GetValue<KeyBind>().Active)
             //    QE();
+            if (eqmouse)
+            {
+                JumpTomouse();
+                solvejumptomouse();
+                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else
+            {
+                waitQjumpmouse = false;
+                waitEjumpmouse = false;
+                setQjumpMouse = false;
+                setEjumpMouse = false;
+            }
             if (knocktarget)
             {
                 JumpToTarget();
@@ -303,6 +335,53 @@ namespace HeavenSTrikeAzir
                             : tar.Position;
                         _w.Cast(x);
                     }
+                }
+            }
+
+        }
+        private static void JumpTomouse()
+        {
+            if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
+            {
+                if (soldier.Any())
+                {
+                    var Sold = soldier.OrderByDescending(x => x.Position.Distance(Game.CursorPos)).LastOrDefault();
+                    var disSold = Sold.Position.Distance(Game.CursorPos);
+                    if (disSold < _q.Range - 500)
+                    {
+                        if (Player.Distance(Sold.Position) <= 900)
+                        {
+                            _e.Cast(Sold.Position);
+                            setQjumpMouse = true;
+                            return;
+                        }
+                    }
+                }
+                if (_w.IsReady())
+                {
+                    var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                    var disW = Player.Distance(Game.CursorPos) - _w.Range;
+                    if (disW < _q.Range - 800)
+                    {
+                        _w.Cast(posW);
+                        posEjumpMouse = posW;
+                        setEjumpMouse = true;
+                        return;
+                    }
+                }
+            }
+        }
+        private static void solvejumptomouse()
+        {
+            if (waitEjumpmouse == true)
+            {
+                _e.Cast(posEjumpTarget);
+            }
+            if (waitQjumpmouse == true)
+            {
+                if (Player.ServerPosition.Distance(Game.CursorPos) <= _q.Range - 300)
+                {
+                    _q.Cast(Game.CursorPos);
                 }
             }
 
