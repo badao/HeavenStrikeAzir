@@ -26,16 +26,16 @@ namespace HeavenSTrikeAzir
 
         private static List<GameObject> soldier = new List<GameObject>();
 
-        private static List <Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
+        private static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
 
-        private static bool qeWaitQ, waitEjumpTarget,setEjumpTarget, waitQjumpTarget,setQjumpTarget;
+        private static bool qeWaitQ, waitEjumpTarget, setEjumpTarget, waitQjumpTarget, setQjumpTarget;
 
         private static Vector3 qePosQ, posEjumpTarget;
 
         private static int qcount;
 
-        private static string 
-            drawQ = "Draw Q" , drawW = "Draw W", drawQE = "Draw Q+E";
+        private static string
+            drawQ = "Draw Q", drawW = "Draw W", drawQE = "Draw Q+E";
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -48,10 +48,10 @@ namespace HeavenSTrikeAzir
 
 
             //Spells
-            _q = new Spell(SpellSlot.Q,1175);
-            _w = new Spell(SpellSlot.W,450);
-            _e = new Spell(SpellSlot.E,900);
-            _r = new Spell(SpellSlot.R,250);
+            _q = new Spell(SpellSlot.Q, 1175);
+            _w = new Spell(SpellSlot.W, 450);
+            _e = new Spell(SpellSlot.E, 900);
+            _r = new Spell(SpellSlot.R, 250);
             // from detuks :D
             _q.SetSkillshot(0.0f, 65, 1500, false, SkillshotType.SkillshotLine);
             _q.MinHitChance = HitChance.Medium;
@@ -66,7 +66,22 @@ namespace HeavenSTrikeAzir
             TargetSelector.AddToMenu(ts);
             //spell menu
             Menu spellMenu = _menu.AddSubMenu(new Menu("Spells", "Spells"));
-            spellMenu.AddItem(new MenuItem("knocktarget", "knocktarget").SetValue(new KeyBind('T', KeyBindType.Press)));
+            spellMenu.AddItem(new MenuItem("knocktarget", "E-Q Selected Target").SetValue(new KeyBind('T', KeyBindType.Press)));
+            spellMenu.AddItem(new MenuItem("insec", "Insec Selected").SetValue(new KeyBind('Y', KeyBindType.Press)));
+            spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse"},0)));
+            //combo
+            Menu Combo = spellMenu.AddSubMenu(new Menu("Combo", "Combo"));
+            Combo.AddItem(new MenuItem("QC", "Q").SetValue(true));
+            Combo.AddItem(new MenuItem("WC", "W").SetValue(true));
+            //Harass
+            Menu Harass = spellMenu.AddSubMenu(new Menu("Harass", "Harass"));
+            Harass.AddItem(new MenuItem("QH", "Q").SetValue(true));
+            Harass.AddItem(new MenuItem("WH", "W").SetValue(true));
+            //auto
+            Menu Auto = spellMenu.AddSubMenu(new Menu("Auto", "Auto"));
+            Auto.AddItem(new MenuItem("RKS", "use R KS").SetValue(true));
+            Auto.AddItem(new MenuItem("RTOWER", "R target to Tower").SetValue(true));
+            Auto.AddItem(new MenuItem("RGAP", "R anti GAP").SetValue(false));
             //auto menu
             //Menu auto = spellMenu.AddSubMenu(new Menu("Auto", "Auto"));
             //Drawing
@@ -81,8 +96,27 @@ namespace HeavenSTrikeAzir
             Game.OnUpdate += Game_OnGameUpdate;
             //Orbwalking.AfterAttack += Orbwalking_AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
+            AntiGapcloser.OnEnemyGapcloser += AntiGapcloser_OnEnemyGapcloser;
         }
+
+        private static void AntiGapcloser_OnEnemyGapcloser(ActiveGapcloser gapcloser)
+        {
+            var target = gapcloser.Sender;
+            if (target.IsEnemy && _r.IsReady() && target.IsValidTarget() && !target.IsZombie && RGAP)
+            {
+                if (target.IsValidTarget(250)) _r.Cast(target.Position);
+            }
+        }
+        private static bool RTOWER { get { return _menu.Item("RTOWER").GetValue<bool>(); } }
+        private static bool RKS { get { return _menu.Item("RKS").GetValue<bool>(); } }
+        private static bool RGAP { get { return _menu.Item("RGAP").GetValue<bool>(); } }
+        private static bool qcombo { get { return _menu.Item("QC").GetValue<bool>(); } }
+        private static bool wcombo { get { return _menu.Item("WC").GetValue<bool>(); } }
+        private static bool qharass { get { return _menu.Item("QH").GetValue<bool>(); } }
+        private static bool wharass { get { return _menu.Item("WH").GetValue<bool>(); } }
         private static bool knocktarget { get { return _menu.Item("knocktarget").GetValue<KeyBind>().Active; } }
+        private static bool insec { get { return _menu.Item("insec").GetValue<KeyBind>().Active; } }
+        private static int insecmode { get { return _menu.Item("insecmode").GetValue<StringList>().SelectedIndex; } }
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
@@ -91,16 +125,17 @@ namespace HeavenSTrikeAzir
                 lastAA = Utils.GameTimeTickCount - Game.Ping / 2;
             if (args.SData.Name.ToLower().Contains("azirq"))
             {
+                Qtick = Utils.GameTimeTickCount;
                 qeWaitQ = false;
                 qcount = Utils.GameTimeTickCount;
-                if (knocktarget)
+                if ((knocktarget || insec))
                 {
                     waitQjumpTarget = false;
                 }
             }
             if (args.SData.Name.ToLower().Contains("azirw"))
             {
-                if (knocktarget && setEjumpTarget)
+                if ((knocktarget || insec) && setEjumpTarget)
                 {
                     waitEjumpTarget = true;
                     setEjumpTarget = false;
@@ -109,7 +144,7 @@ namespace HeavenSTrikeAzir
             }
             if (args.SData.Name.ToLower().Contains("azire"))
             {
-                if (knocktarget && setQjumpTarget)
+                if ((knocktarget || insec) && setQjumpTarget)
                 {
                     waitEjumpTarget = false;
                     waitQjumpTarget = true;
@@ -126,9 +161,11 @@ namespace HeavenSTrikeAzir
         {
             // azir soldier
             azirsoldier();
+            //auto
+            Auto();
             //azir();
             var x = _orbwalker.ActiveMode;
-            if (x == Orbwalking.OrbwalkingMode.Combo ||x == Orbwalking.OrbwalkingMode.Mixed)
+            if (x == Orbwalking.OrbwalkingMode.Combo || x == Orbwalking.OrbwalkingMode.Mixed)
             {
                 _orbwalker.SetAttack(false);
             }
@@ -144,6 +181,16 @@ namespace HeavenSTrikeAzir
             {
                 JumpToTarget();
                 solvejumptotarget();
+                Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else if (insec)
+            {
+                //if (_r.IsReady())
+                //{
+                    JumpToTarget();
+                    solvejumptotarget();
+                    Rinsec();
+                //}
                 Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             }
             else
@@ -178,7 +225,7 @@ namespace HeavenSTrikeAzir
                 if (target.IsValidTarget() && !target.IsZombie)
                     Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
-            if (_w.IsReady() && CanMove() && !enemies.Any())
+            if (_w.IsReady() && CanMove() && !enemies.Any() && wharass)
             {
                 var target = TargetSelector.GetTarget(_w.Range + 300, TargetSelector.DamageType.Magical);
                 if (target.IsValidTarget() && !target.IsZombie && !enemies.Contains(target))
@@ -188,7 +235,7 @@ namespace HeavenSTrikeAzir
                     _w.Cast(x);
                 }
             }
-            if (_q.IsReady() && CanMove())
+            if (_q.IsReady() && CanMove() && qharass)
             {
                 var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
                 foreach (var obj in soldier)
@@ -197,7 +244,7 @@ namespace HeavenSTrikeAzir
                     _q.Cast(target);
                 }
             }
-            if (_w.IsReady() && CanMove() && !enemies.Any() &&!soldier.Any())
+            if (_w.IsReady() && CanMove() && !enemies.Any() && !soldier.Any() && wharass && Qisready())
             {
                 var target = TargetSelector.GetTarget(_w.Range + 300, TargetSelector.DamageType.Magical);
                 if (target == null || !target.IsValidTarget() || target.IsZombie)
@@ -225,7 +272,7 @@ namespace HeavenSTrikeAzir
                 if (target.IsValidTarget() && !target.IsZombie)
                     Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
-            if (_w.IsReady() && CanMove())
+            if (_w.IsReady() && CanMove() && wcombo)
             {
                 var target = TargetSelector.GetTarget(_w.Range + 300, TargetSelector.DamageType.Magical);
                 if (target.IsValidTarget() && !target.IsZombie && !enemies.Contains(target))
@@ -235,7 +282,7 @@ namespace HeavenSTrikeAzir
                     _w.Cast(x);
                 }
             }
-            if (_q.IsReady() && CanMove())
+            if (_q.IsReady() && CanMove() && qcombo)
             {
                 var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
                 foreach (var obj in soldier)
@@ -244,7 +291,7 @@ namespace HeavenSTrikeAzir
                     _q.Cast(target);
                 }
             }
-            if (_w.IsReady() && CanMove() && !soldier.Any())
+            if (_w.IsReady() && CanMove() && !soldier.Any() && wcombo && Qisready())
             {
                 var target = TargetSelector.GetTarget(_w.Range + 300, TargetSelector.DamageType.Magical);
                 if (target == null || !target.IsValidTarget() || target.IsZombie)
@@ -267,14 +314,14 @@ namespace HeavenSTrikeAzir
             {
                 foreach (var x in soldier)
                 {
-                    if (Geometry.Distance(target.Position.To2D(),Player.Position.To2D(),x.Position.To2D(),true,true) <= target.BoundingRadius + Player.BoundingRadius && _e.IsReady()
-                        &&  Player.Distance(x.Position) <= 900)
+                    if (Geometry.Distance(target.Position.To2D(), Player.Position.To2D(), x.Position.To2D(), true, true) <= target.BoundingRadius + Player.BoundingRadius && _e.IsReady()
+                        && Player.Distance(x.Position) <= 900)
                     {
                         _e.Cast(x.Position);
                         return;
                     }
                 }
-                if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown)
+                if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown *1000)
                 {
                     //if (_w.IsReady() && soldier.Any())
                     //{
@@ -319,7 +366,7 @@ namespace HeavenSTrikeAzir
                     {
                         var posW = Player.Position.Extend(target.Position, _w.Range);
                         var disW = Player.Distance(target.Position) - _w.Range;
-                        if (disW < _q.Range - 700 )
+                        if (disW < _q.Range - 800)
                         {
                             _w.Cast(posW);
                             posEjumpTarget = posW;
@@ -344,22 +391,86 @@ namespace HeavenSTrikeAzir
                     _q.Cast(target.Position);
                 }
             }
-            
+
         }
-        
+        private static void Rinsec()
+        {
+            var mode = insecmode;
+            var target = TargetSelector.GetSelectedTarget();
+            if (target != null)
+            {
+                //var targetfuturepos = Prediction.GetPrediction(target, 0.1f).UnitPosition;
+                bool caninsec = Player.Distance(target.Position) <= 300;
+                switch (mode)
+                {
+                    case 0:
+                        var hero = HeroManager.Allies.Where(x => !x.IsMe && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
+                        if (hero != null && caninsec && Player.ServerPosition.Distance(hero.Position)  <= target.Distance(hero.Position))
+                        {
+                            var pos = Player.Position.Extend(hero.Position, 250);
+                            _r.Cast(pos);
+                        }
+                        break;
+                    case 1:
+                        var turret = ObjectManager.Get<Obj_AI_Turret>().Where(x => x.IsAlly && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
+                        if (turret != null && caninsec && Player.ServerPosition.Distance(turret.Position) <= target.Distance(turret.Position))
+                        {
+                            var pos = Player.Position.Extend(turret.Position, 250);
+                            _r.Cast(pos);
+                        }
+                        break;
+                    case 2:
+                        if (caninsec && Player.ServerPosition.Distance(Game.CursorPos)  <= target.Distance(Game.CursorPos))
+                        {
+                            var pos = Player.Position.Extend(Game.CursorPos, 250);
+                            _r.Cast(pos);
+                        }
+                        break;
+                }
+            }
+        }
+        private static void Auto()
+        {
+            if (RKS)
+            {
+                if (_r.IsReady())
+                {
+                    foreach (var hero in HeroManager.Enemies.Where(x => x.IsValidTarget(250) && !x.IsZombie && x.Health < _r.GetDamage(x)))
+                    {
+                        _r.Cast(hero.Position);
+                    }
+                }
+            }
+            if(RTOWER)
+            {
+                if (_r.IsReady())
+                {
+                    var turret = ObjectManager.Get<Obj_AI_Turret>().Where(x => x.IsAlly && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
+                    foreach (var hero in HeroManager.Enemies.Where(x => x.IsValidTarget(250) && !x.IsZombie))
+                    {
+                        if (Player.ServerPosition.Distance(turret.Position) <= hero.Distance(turret.Position) && hero.Distance(turret.Position) <= 775 + 250)
+                        {
+                            var pos = Player.Position.Extend(turret.Position, 250);
+                            _r.Cast(pos);
+                        }
+                    }
+                }
+            }
+        }
+
         private static void azir()
         {
             String temp = "";
-            foreach(var obj in ObjectManager.Get<GameObject>().Where(x => x.Position.Distance(Game.CursorPos) <=100))
+            foreach (var obj in ObjectManager.Get<GameObject>().Where(x => x.Position.Distance(Game.CursorPos) <= 100))
             {
-                temp += obj.Name + " ," ;
+                temp += obj.Name + " ,";
             }
-            if (temp != "")Game.Say(temp);
+            if (temp != "") Game.Say(temp);
         }
         private static void azirsoldier()
         {
             soldier = new List<GameObject>();
-            foreach (var obj in ObjectManager.Get<GameObject>().Where(x => x.Name == "Azir_Base_P_Soldier_Ring.troy" ))
+            foreach (var obj in ObjectManager.Get<GameObject>().Where(x => x.Name == "Azir_Base_P_Soldier_Ring.troy"))
             {
                 soldier.Add(obj);
             }
@@ -383,5 +494,15 @@ namespace HeavenSTrikeAzir
         {
             return (Utils.GameTimeTickCount + Game.Ping / 2 >= lastAA + Player.AttackCastDelay * 1000 + 80);
         }
+        private static bool  Qisready()
+        {
+            if (Utils.GameTimeTickCount - Qtick >= _q.Instance.Cooldown * 1000)
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+        private static int Qtick;
     }
 }
