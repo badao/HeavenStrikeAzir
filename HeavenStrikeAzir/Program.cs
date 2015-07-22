@@ -347,21 +347,33 @@ namespace HeavenSTrikeAzir
                 {
                     var Sold = soldier.OrderByDescending(x => x.Position.Distance(Game.CursorPos)).LastOrDefault();
                     var disSold = Sold.Position.Distance(Game.CursorPos);
-                    if (disSold < _q.Range - 500)
+                    if (disSold < _q.Range - 400 || Player.Distance(Sold.Position) > Player.Distance(Game.CursorPos))
                     {
-                        if (Player.Distance(Sold.Position) <= 900)
+                        if (Player.Distance(Sold.Position) <= 1200)
                         {
                             _e.Cast(Sold.Position);
                             setQjumpMouse = true;
                             return;
                         }
+                        else if (_w.IsReady())
+                        {
+                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                            var disW = Player.Distance(Game.CursorPos) - _w.Range;
+                            if (disW < _q.Range - 700)
+                            {
+                                _w.Cast(posW);
+                                posEjumpMouse = posW;
+                                setEjumpMouse = true;
+                                return;
+                            }
+                        }
                     }
                 }
-                if (_w.IsReady())
+                else if (_w.IsReady())
                 {
                     var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
                     var disW = Player.Distance(Game.CursorPos) - _w.Range;
-                    if (disW < _q.Range - 800)
+                    if (disW < _q.Range - 700)
                     {
                         _w.Cast(posW);
                         posEjumpMouse = posW;
@@ -402,50 +414,39 @@ namespace HeavenSTrikeAzir
                 }
                 if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown *1000)
                 {
-                    //if (_w.IsReady() && soldier.Any())
-                    //{
-                    //    var posW = Player.Position.Extend(target.Position, _w.Range);
-                    //    var disW = Player.Distance(target.Position) - _w.Range;
-                    //    var Sold = soldier.OrderByDescending(x => x.Position.Distance(target.Position)).LastOrDefault();
-                    //    var disSold = Sold.Position.Distance(target.Position);
-                    //    if (disW < _q.Range - 500 || disSold < _q.Range - 500)
-                    //    {
-                    //        if (disW < disSold)
-                    //        {
-                    //            _w.Cast(posW);
-                    //            posEjumpTarget = posW;
-                    //            setEjumpTarget = true;
-                    //            return;
-                    //        }
-                    //        else if (Player.Distance(Sold.Position) <= 900)
-                    //        {
-                    //            _e.Cast(Sold.Position);
-                    //            setQjumpTarget = true;
-                    //            return;
-                    //        }
-                    //    }
 
-                    //}
-                    //else 
                     if (soldier.Any())
                     {
                         var Sold = soldier.OrderByDescending(x => x.Position.Distance(target.Position)).LastOrDefault();
                         var disSold = Sold.Position.Distance(target.Position);
-                        if (disSold < _q.Range - 500)
+                        if (disSold < _q.Range - 400 || Player.Distance(Sold.Position) > Player.Distance(target.Position))
                         {
-                            if (Player.Distance(Sold.Position) <= 900)
+                            if (Player.Distance(Sold.Position) <= 1200)
                             {
                                 _e.Cast(Sold.Position);
                                 setQjumpTarget = true;
                                 return;
                             }
+                            else if (_w.IsReady())
+                            {
+                                var posW = Player.Position.Extend(target.Position, _w.Range);
+                                var disW = Player.Distance(target.Position) - _w.Range;
+                                if (disW < _q.Range - 700)
+                                {
+                                    _w.Cast(posW);
+                                    posEjumpTarget = posW;
+                                    setEjumpTarget = true;
+                                    return;
+                                }
+                            }
                         }
+
                     }
-                    if (_w.IsReady())
+                    else if (_w.IsReady())
                     {
                         var posW = Player.Position.Extend(target.Position, _w.Range);
                         var disW = Player.Distance(target.Position) - _w.Range;
-                        if (disW < _q.Range - 800)
+                        if (disW < _q.Range - 700)
                         {
                             _w.Cast(posW);
                             posEjumpTarget = posW;
