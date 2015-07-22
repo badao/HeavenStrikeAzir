@@ -73,7 +73,6 @@ namespace HeavenSTrikeAzir
             Menu Draw = _menu.AddSubMenu(new Menu("Drawing", "Drawing"));
             Draw.AddItem(new MenuItem(drawQ, drawQ).SetValue(true));
             Draw.AddItem(new MenuItem(drawW, drawW).SetValue(true));
-            Draw.AddItem(new MenuItem(drawQE, drawQE).SetValue(true));
             //Attach to root
             _menu.AddToMainMenu();
 
@@ -165,12 +164,6 @@ namespace HeavenSTrikeAzir
                 Render.Circle.DrawCircle(Player.Position, _q.Range, Color.Yellow);
             if (_menu.Item(drawW).GetValue<bool>())
                 Render.Circle.DrawCircle(Player.Position, _w.Range, Color.Yellow);
-            if (_menu.Item(drawQE).GetValue<bool>())
-                Render.Circle.DrawCircle(Player.Position, _q.Range + _w.Range, Color.Yellow);
-            foreach (var x in soldier)
-            {
-                Render.Circle.DrawCircle(x.Position, 200, Color.Yellow);
-            }
         }
         private static void Harass()
         {
