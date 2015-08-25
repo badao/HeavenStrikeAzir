@@ -34,7 +34,8 @@ namespace HeavenSTrikeAzir
 
         private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse, posEjumpMax,posQjumpMax;
 
-        private static int qcount;
+        private static int qcount,ecount;
+        private static bool Eisready { get { return Player.Mana >= _e.Instance.ManaCost && Utils.GameTimeTickCount - ecount >= _e.Instance.Cooldown * 1000f; } }
 
         private static string
             drawQ = "Draw Q", drawW = "Draw W", drawQE = "Draw Q+E";
@@ -170,6 +171,7 @@ namespace HeavenSTrikeAzir
             }
             if (args.SData.Name.ToLower().Contains("azire"))
             {
+                ecount = Utils.GameTimeTickCount;
                 if ((knocktarget || insec) && setQjumpTarget)
                 {
                     waitEjumpTarget = false;
@@ -197,6 +199,7 @@ namespace HeavenSTrikeAzir
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
+            //Game.PrintChat(_e.Instance.Cooldown.ToString());
             // azir soldier
             azirsoldier();
             //if (soldier.Any())
@@ -379,7 +382,7 @@ namespace HeavenSTrikeAzir
         private static void JumpToMax()
         {
             if (setEjumpMax || setQjumpMax || waitEjumpmax || waitQjumpmax) return;
-            if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
+            if (Eisready && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
             {
                 if (soldier.Any())
                 {
@@ -462,7 +465,7 @@ namespace HeavenSTrikeAzir
         }
         private static void JumpTomouse()
         {
-            if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
+            if (Eisready && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
             {
                 if (soldier.Any())
                 {
@@ -526,14 +529,14 @@ namespace HeavenSTrikeAzir
             {
                 foreach (var x in soldier)
                 {
-                    if (Geometry.Distance(target.Position.To2D(), Player.Position.To2D(), x.Position.To2D(), true, true) <= target.BoundingRadius + Player.BoundingRadius && _e.IsReady()
+                    if (Geometry.Distance(target.Position.To2D(), Player.Position.To2D(), x.Position.To2D(), true, true) <= target.BoundingRadius + Player.BoundingRadius && Eisready
                         && Player.Distance(x.Position) <= 900)
                     {
                         _e.Cast(x.Position);
                         return;
                     }
                 }
-                if (_e.IsReady() && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown *1000)
+                if (Eisready && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown *1000)
                 {
 
                     if (soldier.Any())
