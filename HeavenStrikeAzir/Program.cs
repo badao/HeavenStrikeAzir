@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -32,7 +32,7 @@ namespace HeavenSTrikeAzir
         private static bool waitEjumpmouse, setEjumpMouse, waitQjumpmouse, setQjumpMouse;
         private static bool waitEjumpmax, setEjumpMax, waitQjumpmax, setQjumpMax;
 
-        private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse, posEjumpMax,posQjumpMax;
+        private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse, posEjumpMax,posQjumpMax,posQjumpMouse;
 
         private static int qcount,ecount;
         private static bool Eisready { get { return Player.Mana >= _e.Instance.ManaCost && Utils.GameTimeTickCount - ecount >= _e.Instance.Cooldown * 1000f; } }
@@ -584,17 +584,23 @@ namespace HeavenSTrikeAzir
         private static void solvejumptotarget()
         {
             var target = TargetSelector.GetSelectedTarget();
-            if (waitEjumpTarget == true)
+            if (target.IsValidTarget() && !target.IsZombie)
             {
-                _e.Cast(posEjumpTarget);
-            }
-            if (waitQjumpTarget == true)
-            {
-                if (Player.ServerPosition.Distance(target.Position) <= _q.Range - 300)
+                if (waitEjumpTarget == true)
                 {
-                    _q.Cast(target.Position);
+                    _e.Cast(posEjumpTarget);
+                }
+                var targetpos = Prediction.GetPrediction(target,Player.Distance(target.Position)/1600).UnitPosition;
+                var castposition = Player.Distance(target.Position) > Player.Distance(targetpos) ? target.Position : targetpos;
+                if (waitQjumpTarget == true)
+                {
+                    if (Player.ServerPosition.Distance(castposition) <= _q.Range - 300)
+                    {
+                        _q.Cast(castposition);
+                    }
                 }
             }
+
 
         }
         private static void Rinsec()
@@ -609,7 +615,7 @@ namespace HeavenSTrikeAzir
                 {
                     case 0:
                         var hero = HeroManager.Allies.Where(x => !x.IsMe && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
-                        if (hero != null && caninsec && Player.ServerPosition.Distance(hero.Position)  <= target.Distance(hero.Position))
+                        if (hero != null && caninsec && Player.ServerPosition.Distance(hero.Position)+100  >= target.Distance(hero.Position))
                         {
                             var pos = Player.Position.Extend(hero.Position, 250);
                             _r.Cast(pos);
@@ -617,14 +623,14 @@ namespace HeavenSTrikeAzir
                         break;
                     case 1:
                         var turret = ObjectManager.Get<Obj_AI_Turret>().Where(x => x.IsAlly && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
-                        if (turret != null && caninsec && Player.ServerPosition.Distance(turret.Position) <= target.Distance(turret.Position))
+                        if (turret != null && caninsec && Player.ServerPosition.Distance(turret.Position) + 100 >= target.Distance(turret.Position))
                         {
                             var pos = Player.Position.Extend(turret.Position, 250);
                             _r.Cast(pos);
                         }
                         break;
                     case 2:
-                        if (caninsec && Player.ServerPosition.Distance(Game.CursorPos)  <= target.Distance(Game.CursorPos))
+                        if (caninsec && Player.ServerPosition.Distance(Game.CursorPos)+100  >= target.Distance(Game.CursorPos))
                         {
                             var pos = Player.Position.Extend(Game.CursorPos, 250);
                             _r.Cast(pos);
@@ -652,7 +658,7 @@ namespace HeavenSTrikeAzir
                     var turret = ObjectManager.Get<Obj_AI_Turret>().Where(x => x.IsAlly && !x.IsDead).OrderByDescending(x => x.Distance(Player.Position)).LastOrDefault();
                     foreach (var hero in HeroManager.Enemies.Where(x => x.IsValidTarget(250) && !x.IsZombie))
                     {
-                        if (Player.ServerPosition.Distance(turret.Position) <= hero.Distance(turret.Position) && hero.Distance(turret.Position) <= 775 + 250)
+                        if (Player.ServerPosition.Distance(turret.Position)+100 >= hero.Distance(turret.Position) && hero.Distance(turret.Position) <= 775 + 250)
                         {
                             var pos = Player.Position.Extend(turret.Position, 250);
                             _r.Cast(pos);
