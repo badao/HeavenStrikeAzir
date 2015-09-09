@@ -869,8 +869,8 @@ namespace HeavenSTrikeAzir
                 if (target is Obj_AI_Hero && target.IsValidTarget())
                     return target;
             }
-             /*Jungle minions*/
-            if(_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LaneClear ||_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.Mixed)
+            /*Jungle minions*/
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
             {
                 result =
                     MinionList
@@ -886,7 +886,7 @@ namespace HeavenSTrikeAzir
 
 
             /*Lane Clear minions*/
-            if (_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LaneClear)
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
             {
                 if (!ShouldWait())
                 {
@@ -900,7 +900,7 @@ namespace HeavenSTrikeAzir
                               where
                                   predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
                                   Math.Abs(predHealth - minion.Health) < float.Epsilon
-                              select minion).MaxOrDefault(m => m.Health);
+                              select minion).MinOrDefault(m => m.Health);
 
                     if (result != null)
                     {
