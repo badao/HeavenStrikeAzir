@@ -815,8 +815,7 @@ namespace HeavenSTrikeAzir
             MinionList
                     .Where(
                         minion =>
-                            minion.IsValidTarget() && 
-                            !Orbwalking.IsWard(minion))
+                            minion.IsValidTarget())
                             .OrderByDescending(minion => minion.CharData.BaseSkinName.Contains("Siege"))
                             .ThenBy(minion => minion.CharData.BaseSkinName.Contains("Super"))
                             .ThenBy(minion => minion.Health)
