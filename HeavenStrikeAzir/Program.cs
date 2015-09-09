@@ -86,11 +86,11 @@ namespace HeavenSTrikeAzir
             Menu Harass = spellMenu.AddSubMenu(new Menu("Harass", "Harass"));
             Harass.AddItem(new MenuItem("QH", "Q").SetValue(true));
             Harass.AddItem(new MenuItem("WH", "W").SetValue(true));
-            //Clear
-            Menu Clear = spellMenu.AddSubMenu(new Menu("Clear", "Clear"));
-            Clear.AddItem(new MenuItem("QC", "Q").SetValue(true));
-            Clear.AddItem(new MenuItem("WC", "W").SetValue(true));
-            Clear.AddItem(new MenuItem("ManaClear", "Min Mana Clear").SetValue(new Slider(40,0,100)));
+            ////Clear
+            //Menu Clear = spellMenu.AddSubMenu(new Menu("Clear", "Clear"));
+            //Clear.AddItem(new MenuItem("QC", "Q").SetValue(true));
+            //Clear.AddItem(new MenuItem("WC", "W").SetValue(true));
+            //Clear.AddItem(new MenuItem("ManaClear", "Min Mana Clear").SetValue(new Slider(40,0,100)));
             //auto
             Menu Auto = spellMenu.AddSubMenu(new Menu("Auto", "Auto"));
             Auto.AddItem(new MenuItem("RKS", "use R KS").SetValue(true));
@@ -130,9 +130,9 @@ namespace HeavenSTrikeAzir
         private static bool wcombo { get { return _menu.Item("WC").GetValue<bool>(); } }
         private static bool qharass { get { return _menu.Item("QH").GetValue<bool>(); } }
         private static bool wharass { get { return _menu.Item("WH").GetValue<bool>(); } }
-        private static bool qclear { get { return _menu.Item("QC").GetValue<bool>(); } }
-        private static bool wclear { get { return _menu.Item("WC").GetValue<bool>(); } }
-        private static int manaclear { get { return _menu.Item("ManaClear").GetValue<Slider>().Value; } }
+        //private static bool qclear { get { return _menu.Item("QC").GetValue<bool>(); } }
+        //private static bool wclear { get { return _menu.Item("WC").GetValue<bool>(); } }
+        //private static int manaclear { get { return _menu.Item("ManaClear").GetValue<Slider>().Value; } }
         private static bool knocktarget { get { return _menu.Item("knocktarget").GetValue<KeyBind>().Active; } }
         private static bool insec { get { return _menu.Item("insec").GetValue<KeyBind>().Active; } }
         private static int insecmode { get { return _menu.Item("insecmode").GetValue<StringList>().SelectedIndex; } }
