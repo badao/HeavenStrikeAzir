@@ -28,6 +28,10 @@ namespace HeavenSTrikeAzir
 
         private static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
 
+        private static List<Obj_AI_Minion> autoattackminions = new List<Obj_AI_Minion>();
+
+        private static List<Obj_AI_Minion> soldierattackminions = new List<Obj_AI_Minion>();
+
         private static bool qeWaitQ, waitEjumpTarget, setEjumpTarget, waitQjumpTarget, setQjumpTarget;
         private static bool waitEjumpmouse, setEjumpMouse, waitQjumpmouse, setQjumpMouse;
         private static bool waitEjumpmax, setEjumpMax, waitQjumpmax, setQjumpMax;
@@ -82,6 +86,11 @@ namespace HeavenSTrikeAzir
             Menu Harass = spellMenu.AddSubMenu(new Menu("Harass", "Harass"));
             Harass.AddItem(new MenuItem("QH", "Q").SetValue(true));
             Harass.AddItem(new MenuItem("WH", "W").SetValue(true));
+            //Clear
+            Menu Clear = spellMenu.AddSubMenu(new Menu("Clear", "Clear"));
+            Clear.AddItem(new MenuItem("QC", "Q").SetValue(true));
+            Clear.AddItem(new MenuItem("WC", "W").SetValue(true));
+            Clear.AddItem(new MenuItem("ManaClear", "Min Mana Clear").SetValue(new Slider(40,0,100)));
             //auto
             Menu Auto = spellMenu.AddSubMenu(new Menu("Auto", "Auto"));
             Auto.AddItem(new MenuItem("RKS", "use R KS").SetValue(true));
@@ -121,6 +130,9 @@ namespace HeavenSTrikeAzir
         private static bool wcombo { get { return _menu.Item("WC").GetValue<bool>(); } }
         private static bool qharass { get { return _menu.Item("QH").GetValue<bool>(); } }
         private static bool wharass { get { return _menu.Item("WH").GetValue<bool>(); } }
+        private static bool qclear { get { return _menu.Item("QC").GetValue<bool>(); } }
+        private static bool wclear { get { return _menu.Item("WC").GetValue<bool>(); } }
+        private static int manaclear { get { return _menu.Item("ManaClear").GetValue<Slider>().Value; } }
         private static bool knocktarget { get { return _menu.Item("knocktarget").GetValue<KeyBind>().Active; } }
         private static bool insec { get { return _menu.Item("insec").GetValue<KeyBind>().Active; } }
         private static int insecmode { get { return _menu.Item("insecmode").GetValue<StringList>().SelectedIndex; } }
@@ -211,7 +223,7 @@ namespace HeavenSTrikeAzir
             Auto();
             //azir();
             var x = _orbwalker.ActiveMode;
-            if (x == Orbwalking.OrbwalkingMode.Combo || x == Orbwalking.OrbwalkingMode.Mixed)
+            if (x != Orbwalking.OrbwalkingMode.None)
             {
                 _orbwalker.SetAttack(false);
             }
@@ -219,7 +231,9 @@ namespace HeavenSTrikeAzir
             //combo
             if (x == Orbwalking.OrbwalkingMode.Combo) Combo();
             //harass
-            if (x == Orbwalking.OrbwalkingMode.Mixed) Harass();
+            else if (x == Orbwalking.OrbwalkingMode.Mixed) Harass();
+            // clear && lasthit
+            else if (x != Orbwalking.OrbwalkingMode.None) Clear();
             //qe
             //if (_menu.Item(spellEQtoMouse).GetValue<KeyBind>().Active)
             //    QE();
@@ -275,7 +289,6 @@ namespace HeavenSTrikeAzir
 
 
         }
-
         private static void Drawing_OnDraw(EventArgs args)
         {
             if (Player.IsDead) return;
@@ -284,18 +297,53 @@ namespace HeavenSTrikeAzir
             if (_menu.Item(drawW).GetValue<bool>())
                 Render.Circle.DrawCircle(Player.Position, _w.Range, Color.Yellow);
         }
+
+        private static void Clear()
+        {
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+            {
+                var target = GetClearMinionsAndBuildings();
+                if (CanDoAttack() && target != null)
+                {
+                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
+                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                }
+            }
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit)
+            {
+                var target = GetClearMinionsAndBuildings();
+                if (CanDoAttack() && target != null)
+                {
+                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
+                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                }
+            }
+        }
         private static void Harass()
         {
             if (enemies.Any() && CanDoAttack())
             {
                 var target = enemies.OrderByDescending(x => x.Health).LastOrDefault();
+                Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
                 Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
             if (!enemies.Any() && CanDoAttack())
             {
                 var target = _orbwalker.GetTarget();
                 if (target.IsValidTarget() && !target.IsZombie)
+                {
+                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
                     Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                }
+                else
+                {
+                    var minion = GetClearMinionsAndBuildings();
+                    if (minion.IsValidTarget())
+                    {
+                        Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
+                        Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    }
+                }
             }
             if (_w.IsReady() && CanMove() && !enemies.Any() && wharass)
             {
@@ -336,13 +384,17 @@ namespace HeavenSTrikeAzir
             if (enemies.Any() && CanDoAttack())
             {
                 var target = enemies.OrderByDescending(x => x.Health).LastOrDefault();
+                Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
                 Player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
             if (!enemies.Any() && CanDoAttack())
             {
                 var target = _orbwalker.GetTarget();
                 if (target.IsValidTarget() && !target.IsZombie)
+                {
+                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
                     Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                }
             }
             if (_w.IsReady() && CanMove() && wcombo)
             {
@@ -465,45 +517,121 @@ namespace HeavenSTrikeAzir
         }
         private static void JumpTomouse()
         {
+            //if (Eisready && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
+            //{
+            //    if (soldier.Any())
+            //    {
+            //        var Sold = soldier.OrderByDescending(x => x.Position.Distance(Game.CursorPos)).LastOrDefault();
+            //        var disSold = Sold.Position.Distance(Game.CursorPos);
+            //        if (disSold < _q.Range - 400 || Player.Distance(Sold.Position) > Player.Distance(Game.CursorPos))
+            //        {
+            //            if (Player.Distance(Sold.Position) <= 1200)
+            //            {
+            //                _e.Cast(Sold.Position);
+            //                setQjumpMouse = true;
+            //                return;
+            //            }
+            //            else if (_w.IsReady())
+            //            {
+            //                var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+            //                var disW = Player.Distance(Game.CursorPos) - _w.Range;
+            //                if (disW < _q.Range - 700)
+            //                {
+            //                    _w.Cast(posW);
+            //                    posEjumpMouse = posW;
+            //                    setEjumpMouse = true;
+            //                    return;
+            //                }
+            //            }
+            //        }
+            //    }
+            //    else if (_w.IsReady())
+            //    {
+            //        var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+            //        var disW = Player.Distance(Game.CursorPos) - _w.Range;
+            //        if (disW < _q.Range - 700)
+            //        {
+            //            _w.Cast(posW);
+            //            posEjumpMouse = posW;
+            //            setEjumpMouse = true;
+            //            return;
+            //        }
+            //    }
+            //}
+            if (setEjumpMouse || setQjumpMouse || waitEjumpmouse || waitQjumpmouse) return;
             if (Eisready && Utils.GameTimeTickCount - qcount >= _q.Instance.Cooldown * 1000)
             {
                 if (soldier.Any())
                 {
                     var Sold = soldier.OrderByDescending(x => x.Position.Distance(Game.CursorPos)).LastOrDefault();
                     var disSold = Sold.Position.Distance(Game.CursorPos);
-                    if (disSold < _q.Range - 400 || Player.Distance(Sold.Position) > Player.Distance(Game.CursorPos))
+                    if (!_w.IsReady())
                     {
-                        if (Player.Distance(Sold.Position) <= 1200)
+                        if (Sold.Position.Distance(Game.CursorPos) < Player.Distance(Game.CursorPos) && Player.Distance(Sold.Position) >= _w.Range)
                         {
-                            _e.Cast(Sold.Position);
-                            setQjumpMouse = true;
-                            return;
-                        }
-                        else if (_w.IsReady())
-                        {
-                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
-                            var disW = Player.Distance(Game.CursorPos) - _w.Range;
-                            if (disW < _q.Range - 700)
+                            if (Player.Distance(Sold.Position) <= 1200)
                             {
-                                _w.Cast(posW);
-                                posEjumpMouse = posW;
-                                setEjumpMouse = true;
+                                _e.Cast(Sold.Position);
+                                setQjumpMouse = true;
+                                posQjumpMouse = Sold.Position.Distance(Game.CursorPos) > _q.Range - 600 ?
+                                                Sold.Position.Extend(Game.CursorPos, _q.Range - 600) :
+                                                Game.CursorPos;
                                 return;
                             }
                         }
                     }
+                    else if (_w.IsReady())
+                    {
+
+                        if (Sold.Position.Distance(Game.CursorPos) < Player.Distance(Game.CursorPos) && Player.Distance(Sold.Position) >= _w.Range
+                            && Player.Distance(Sold.Position) <= 1200)
+                        {
+                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                            if (Game.CursorPos.Distance(Sold.Position) < Game.CursorPos.Distance(posW))
+                            {
+                                _e.Cast(Sold.Position);
+                                setQjumpMouse = true;
+                                posQjumpMouse = Sold.Position.Distance(Game.CursorPos) > _q.Range - 600 ?
+                                                Sold.Position.Extend(Game.CursorPos, _q.Range - 600) :
+                                                Game.CursorPos;
+                                return;
+                            }
+                            else
+                            {
+                                _w.Cast(posW);
+                                posEjumpMouse = posW;
+                                setEjumpMouse = true;
+                                posQjumpMouse = posW.Distance(Game.CursorPos) > _q.Range - 600 ?
+                                                posW.Extend(Game.CursorPos, _q.Range - 600) :
+                                                Game.CursorPos;
+                                return;
+                            }
+
+                        }
+                        else
+                        {
+                            var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
+                            _w.Cast(posW);
+                            posEjumpMouse = posW;
+                            setEjumpMouse = true;
+                            posQjumpMouse = posW.Distance(Game.CursorPos) > _q.Range - 600 ?
+                                            posW.Extend(Game.CursorPos, _q.Range - 600) :
+                                            Game.CursorPos;
+                            return;
+                        }
+                    }
+
                 }
                 else if (_w.IsReady())
                 {
                     var posW = Player.Position.Extend(Game.CursorPos, _w.Range);
-                    var disW = Player.Distance(Game.CursorPos) - _w.Range;
-                    if (disW < _q.Range - 700)
-                    {
-                        _w.Cast(posW);
-                        posEjumpMouse = posW;
-                        setEjumpMouse = true;
-                        return;
-                    }
+                    _w.Cast(posW);
+                    posEjumpMouse = posW;
+                    setEjumpMouse = true;
+                    posQjumpMouse = posW.Distance(Game.CursorPos) > _q.Range - 600 ?
+                                    posW.Extend(Game.CursorPos, _q.Range - 600) :
+                                    Game.CursorPos;
+                    return;
                 }
             }
         }
@@ -511,13 +639,13 @@ namespace HeavenSTrikeAzir
         {
             if (waitEjumpmouse == true)
             {
-                _e.Cast(posEjumpTarget);
+                _e.Cast(posEjumpMouse);
             }
             if (waitQjumpmouse == true)
             {
-                if (Player.ServerPosition.Distance(Game.CursorPos) <= _q.Range - 300)
+                if (Player.ServerPosition.Distance(posQjumpMouse) <= _q.Range - 300)
                 {
-                    _q.Cast(Game.CursorPos);
+                    _q.Cast(posQjumpMouse);
                 }
             }
 
@@ -677,6 +805,135 @@ namespace HeavenSTrikeAzir
             }
             if (temp != "") Game.Say(temp);
         }
+        private static AttackableUnit GetClearMinionsAndBuildings()
+        {
+            AttackableUnit result = null;
+             /*Killable Minion*/
+
+            var MinionList = new List<Obj_AI_Minion>();
+            MinionList.AddRange(soldierattackminions);
+            MinionList.AddRange(autoattackminions);
+            MinionList
+                    .Where(
+                        minion =>
+                            minion.IsValidTarget() && 
+                            !Orbwalking.IsWard(minion))
+                            .OrderByDescending(minion => minion.CharData.BaseSkinName.Contains("Siege"))
+                            .ThenBy(minion => minion.CharData.BaseSkinName.Contains("Super"))
+                            .ThenBy(minion => minion.Health)
+                            .ThenByDescending(minion => minion.MaxHealth);
+            if (_orbwalker.ActiveMode == Orbwalking. OrbwalkingMode.LaneClear ||_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.Mixed ||
+                   _orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LastHit)
+            {
+                foreach (var minion in MinionList)
+                {
+                    var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
+                    var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 70);
+
+                    if (minion.Team != GameObjectTeam.Neutral && MinionManager.IsMinion(minion, true))
+                    {
+                        if (predHealth > 0 && predHealth <= Player.GetAutoAttackDamage(minion, true))
+                        {
+                            return minion;
+                        }
+                    }
+                }
+            }
+            if (_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LaneClear)
+            {
+                /* turrets */
+                foreach (var turret in
+                    ObjectManager.Get<Obj_AI_Turret>().Where(t => t.IsValidTarget() && Orbwalking.InAutoAttackRange(t)))
+                {
+                    return turret;
+                }
+
+                /* inhibitor */
+                foreach (var turret in
+                    ObjectManager.Get<Obj_BarracksDampener>().Where(t => t.IsValidTarget() && Orbwalking.InAutoAttackRange(t)))
+                {
+                    return turret;
+                }
+
+                /* nexus */
+                foreach (var nexus in
+                    ObjectManager.Get<Obj_HQ>().Where(t => t.IsValidTarget() && Orbwalking.InAutoAttackRange(t)))
+                {
+                    return nexus;
+                }
+            }
+            /*Champions*/
+            if (_orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit)
+            {
+                var target = _orbwalker.GetTarget();
+                if (target is Obj_AI_Hero && target.IsValidTarget())
+                    return target;
+            }
+             /*Jungle minions*/
+            if(_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LaneClear ||_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.Mixed)
+            {
+                result =
+                    MinionList
+                        .Where(
+                            mob =>
+                                mob.IsValidTarget() && mob.Team == GameObjectTeam.Neutral && mob.CharData.BaseSkinName != "gangplankbarrel")
+                        .MaxOrDefault(mob => mob.MaxHealth);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+
+            /*Lane Clear minions*/
+            if (_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LaneClear)
+            {
+                if (!ShouldWait())
+                {
+                    var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
+                    result = (from minion in
+                                  MinionList
+                                      .Where(minion => minion.IsValidTarget() && minion.CharData.BaseSkinName != "gangplankbarrel")
+                              let predHealth =
+                                  HealthPrediction.LaneClearHealthPrediction(
+                                      minion, (int)((Player.AttackDelay * 1000) * t), 70)
+                              where
+                                  predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
+                                  Math.Abs(predHealth - minion.Health) < float.Epsilon
+                              select minion).MaxOrDefault(m => m.Health);
+
+                    if (result != null)
+                    {
+                        return result;
+                    }
+                }
+            }
+            return result;
+
+        }
+        private static bool ShouldWait()
+        {
+            var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
+            return
+            (
+                autoattackminions
+                    .Any(
+                        minion =>
+                            minion.IsValidTarget() && minion.Team != GameObjectTeam.Neutral &&
+                            HealthPrediction.LaneClearHealthPrediction(
+                                minion, t, 70) <=
+                            Player.GetAutoAttackDamage(minion))
+                ||
+                soldierattackminions
+                    .Any(
+                        minion =>
+                            minion.IsValidTarget() && minion.Team != GameObjectTeam.Neutral &&
+                            HealthPrediction.LaneClearHealthPrediction(
+                                minion, t, 70) <=
+                            _w.GetDamage(minion))
+            );
+          
+        }
         private static void azirsoldier()
         {
             soldier = new List<GameObject>();
@@ -689,6 +946,18 @@ namespace HeavenSTrikeAzir
             {
                 if (soldier.Any(x => x.Position.Distance(hero.Position) <= 300 + hero.BoundingRadius && Player.Distance(x.Position) <= 900))
                     enemies.Add(hero);
+            }
+            soldierattackminions = new List<Obj_AI_Minion>();
+            foreach (var minion in ObjectManager.Get<Obj_AI_Minion>().Where(x => x.IsValidTarget()))
+            {
+                if (soldier.Any(x => x.Position.Distance(minion.Position) <= 300 + minion.BoundingRadius && Player.Distance(x.Position) <= 900))
+                    soldierattackminions.Add(minion);
+            }
+            autoattackminions = new List<Obj_AI_Minion>();
+            foreach (var minion in ObjectManager.Get<Obj_AI_Minion>().Where(x => x.IsValidTarget(Orbwalking.GetRealAutoAttackRange(x))))
+            {
+                if (!soldierattackminions.Any(x => x.NetworkId == minion.NetworkId))
+                    autoattackminions.Add(minion);
             }
         }
         public static bool CanDoAttack()
