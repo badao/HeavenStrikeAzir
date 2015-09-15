@@ -13,6 +13,56 @@ namespace HeavenSTrikeAzir
 {
     class Program
     {
+        public class SplashAutoAttackMinion
+        {
+            public Obj_AI_Minion MainMinion;
+            public List<Obj_AI_Minion> SplashAutoAttackMinions;
+            public SplashAutoAttackMinion(Obj_AI_Minion mainminion, List<Obj_AI_Minion> splashautoattackminions)
+            {
+                MainMinion = mainminion;
+                SplashAutoAttackMinions = splashautoattackminions;
+            }
+        }
+        public class SplashAutoAttackChampion
+        {
+            public Obj_AI_Minion MainMinion;
+            public List<Obj_AI_Hero> SplashAutoAttackChampions;
+            public SplashAutoAttackChampion(Obj_AI_Minion mainminion, List<Obj_AI_Hero> splashAutoAttackChampions)
+            {
+                MainMinion = mainminion;
+                SplashAutoAttackChampions = splashAutoAttackChampions;
+            }
+        }
+        public class MinionPredictedPosition
+        {
+            public Obj_AI_Minion Minion;
+            public Vector3 Position;
+            public MinionPredictedPosition(Obj_AI_Minion minion, Vector3 position)
+            {
+                Minion = minion;
+                Position = position;
+            }
+        }
+        public class ChampionPredictedPosition
+        {
+            public Obj_AI_Hero Hero;
+            public Vector3 Position;
+            public ChampionPredictedPosition(Obj_AI_Hero hero, Vector3 position)
+            {
+                Hero = hero;
+                Position = position;
+            }
+        }
+        public class SoldierAndTargetMinion
+        {
+            public Obj_AI_Minion Minion;
+            public List<GameObject> Soldier;
+            public SoldierAndTargetMinion (Obj_AI_Minion minion, List<GameObject> soldier)
+            {
+                Minion = minion;
+                Soldier = soldier;
+            }
+        }
         private static Obj_AI_Hero Player { get { return ObjectManager.Player; } }
 
         private static Orbwalking.Orbwalker _orbwalker;
@@ -31,13 +81,17 @@ namespace HeavenSTrikeAzir
 
         private static List<Obj_AI_Minion> soldierattackminions = new List<Obj_AI_Minion>();
 
+        private static List<SplashAutoAttackMinion> splashautoattackminions = new List<SplashAutoAttackMinion>();
+
+        private static List<SplashAutoAttackChampion> splashautoattackchampions = new List<SplashAutoAttackChampion>();
+
         private static bool qeWaitQ, waitEjumpTarget, setEjumpTarget, waitQjumpTarget, setQjumpTarget;
         private static bool waitEjumpmouse, setEjumpMouse, waitQjumpmouse, setQjumpMouse;
         private static bool waitEjumpmax, setEjumpMax, waitQjumpmax, setQjumpMax;
 
         private static Vector3 qePosQ, posEjumpTarget, posEjumpMouse, posEjumpMax,posQjumpMax,posQjumpMouse;
 
-        private static int qcount,ecount;
+        private static int qcount,ecount, lastAAcommandTick;
         private static bool Eisready { get { return Player.Mana >= _e.Instance.ManaCost && Utils.GameTimeTickCount - ecount >= _e.Instance.Cooldown * 1000f; } }
 
         private static string
@@ -81,10 +135,12 @@ namespace HeavenSTrikeAzir
             Menu Combo = spellMenu.AddSubMenu(new Menu("Combo", "Combo"));
             Combo.AddItem(new MenuItem("QC", "Q").SetValue(true));
             Combo.AddItem(new MenuItem("WC", "W").SetValue(true));
+            Combo.AddItem(new MenuItem("donotqC", "Save Q if target in soldier's range").SetValue(false));
             //Harass
             Menu Harass = spellMenu.AddSubMenu(new Menu("Harass", "Harass"));
             Harass.AddItem(new MenuItem("QH", "Q").SetValue(true));
             Harass.AddItem(new MenuItem("WH", "W").SetValue(true));
+            Harass.AddItem(new MenuItem("donotqH", "Save Q if target in soldier's range").SetValue(false));
             ////Clear
             //Menu Clear = spellMenu.AddSubMenu(new Menu("Clear", "Clear"));
             //Clear.AddItem(new MenuItem("QC", "Q").SetValue(true));
@@ -112,6 +168,7 @@ namespace HeavenSTrikeAzir
             AntiGapcloser.OnEnemyGapcloser += AntiGapcloser_OnEnemyGapcloser;
         }
 
+
         private static void AntiGapcloser_OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
             var target = gapcloser.Sender;
@@ -127,8 +184,10 @@ namespace HeavenSTrikeAzir
         private static bool RGAP { get { return _menu.Item("RGAP").GetValue<bool>(); } }
         private static bool qcombo { get { return _menu.Item("QC").GetValue<bool>(); } }
         private static bool wcombo { get { return _menu.Item("WC").GetValue<bool>(); } }
+        private static bool donotqcombo { get { return _menu.Item("donotqC").GetValue<bool>(); } }
         private static bool qharass { get { return _menu.Item("QH").GetValue<bool>(); } }
         private static bool wharass { get { return _menu.Item("WH").GetValue<bool>(); } }
+        private static bool donotqharass { get { return _menu.Item("donotqH").GetValue<bool>(); } }
         //private static bool qclear { get { return _menu.Item("QC").GetValue<bool>(); } }
         //private static bool wclear { get { return _menu.Item("WC").GetValue<bool>(); } }
         //private static int manaclear { get { return _menu.Item("ManaClear").GetValue<Slider>().Value; } }
@@ -215,8 +274,7 @@ namespace HeavenSTrikeAzir
             azirsoldier();
             //if (soldier.Any())
             //{
-            //    //Game.Say(soldier.Count.ToString());
-            //    Game.Say(soldier.Last().Position.Distance(Player.Position).ToString());
+            //    Game.PrintChat(soldier.First().Position.To2D().Distance(Game.CursorPos.To2D()).ToString());
             //}
             //auto
             Auto();
@@ -225,6 +283,9 @@ namespace HeavenSTrikeAzir
             if (x != Orbwalking.OrbwalkingMode.None)
             {
                 _orbwalker.SetAttack(false);
+                _orbwalker.SetMovement(false);
+                if (CanMove() && Player.Position.To2D().Distance(Game.CursorPos.To2D()) >= 40)
+                    Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             }
             else _orbwalker.SetAttack(true);
             //combo
@@ -299,49 +360,40 @@ namespace HeavenSTrikeAzir
 
         private static void Clear()
         {
-            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && CanDoAttack())
             {
-                var target = GetClearMinionsAndBuildings();
-                if (CanDoAttack() && target != null)
+                var minion = GetClearMinionsAndBuildings();
+                if (minion.IsValidTarget())
                 {
-                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    AttackTarget(minion);
                 }
             }
-            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit)
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit && CanDoAttack())
             {
-                var target = GetClearMinionsAndBuildings();
-                if (CanDoAttack() && target != null)
+                var minion = GetClearMinionsAndBuildings();
+                if (minion.IsValidTarget())
                 {
-                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    AttackTarget(minion);
                 }
             }
         }
         private static void Harass()
         {
-            if (enemies.Any() && CanDoAttack())
+            if (CanDoAttack())
             {
-                var target = enemies.OrderByDescending(x => x.Health).LastOrDefault();
-                Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                Player.IssueOrder(GameObjectOrder.AttackUnit, target);
-            }
-            if (!enemies.Any() && CanDoAttack())
-            {
-                var target = _orbwalker.GetTarget();
-                if (target.IsValidTarget() && !target.IsZombie)
+                var minion = GetClearMinionsAndBuildings();
+                if (minion.IsValidTarget())
                 {
-                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    AttackTarget(minion);
                 }
-                else
+            }
+            if (_q.IsReady() && CanMove() && qharass && (!donotqharass || (!enemies.Any() && !splashautoattackchampions.Any())))
+            {
+                var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
+                foreach (var obj in soldier)
                 {
-                    var minion = GetClearMinionsAndBuildings();
-                    if (minion.IsValidTarget())
-                    {
-                        Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                        Player.IssueOrder(GameObjectOrder.AttackUnit, target);
-                    }
+                    _q.SetSkillshot(0.0f, 65f, 1500f, false, SkillshotType.SkillshotLine, obj.Position, Player.Position);
+                    _q.Cast(target);
                 }
             }
             if (_w.IsReady() && CanMove() && !enemies.Any() && wharass)
@@ -352,15 +404,6 @@ namespace HeavenSTrikeAzir
                     var x = Player.Distance(target.Position) > _w.Range ? Player.Position.Extend(target.Position, _w.Range)
                         : target.Position;
                     _w.Cast(x);
-                }
-            }
-            if (_q.IsReady() && CanMove() && qharass)
-            {
-                var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
-                foreach (var obj in soldier)
-                {
-                    _q.SetSkillshot(0.0f, 65f, 1500f, false, SkillshotType.SkillshotLine, obj.Position, Player.Position);
-                    _q.Cast(target);
                 }
             }
             if (_w.IsReady() && CanMove() && !enemies.Any() && !soldier.Any() && wharass && Qisready())
@@ -383,16 +426,34 @@ namespace HeavenSTrikeAzir
             if (enemies.Any() && CanDoAttack())
             {
                 var target = enemies.OrderByDescending(x => x.Health).LastOrDefault();
-                Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                AttackTarget(target);
+            }
+            if (splashautoattackchampions.Any() && CanDoAttack())
+            {
+                var splashAutoAttackChampion = splashautoattackchampions
+                    .OrderByDescending(x => x.SplashAutoAttackChampions.MinOrDefault(y => y.Health).Health).LastOrDefault();
+                if (splashAutoAttackChampion != null)
+                {
+                    var target = splashAutoAttackChampion.MainMinion;
+                    if (target.IsValidTarget())
+                        AttackTarget(target);
+                }
             }
             if (!enemies.Any() && CanDoAttack())
             {
                 var target = _orbwalker.GetTarget();
                 if (target.IsValidTarget() && !target.IsZombie)
                 {
-                    Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping + 200 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
-                    Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    AttackTarget(target);
+                }
+            }
+            if (_q.IsReady() && CanMove() && qcombo && (!donotqcombo || (!enemies.Any() && !splashautoattackchampions.Any())))
+            {
+                var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
+                foreach (var obj in soldier)
+                {
+                    _q.SetSkillshot(0.0f, 65f, 1500f, false, SkillshotType.SkillshotLine, obj.Position, Player.Position);
+                    _q.Cast(target);
                 }
             }
             if (_w.IsReady() && CanMove() && wcombo)
@@ -403,15 +464,6 @@ namespace HeavenSTrikeAzir
                     var x = Player.Distance(target.Position) > _w.Range ? Player.Position.Extend(target.Position, _w.Range)
                         : target.Position;
                     _w.Cast(x);
-                }
-            }
-            if (_q.IsReady() && CanMove() && qcombo)
-            {
-                var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical);
-                foreach (var obj in soldier)
-                {
-                    _q.SetSkillshot(0.0f, 65f, 1500f, false, SkillshotType.SkillshotLine, obj.Position, Player.Position);
-                    _q.Cast(target);
                 }
             }
             if (_w.IsReady() && CanMove() && !soldier.Any() && wcombo && Qisready())
@@ -812,27 +864,65 @@ namespace HeavenSTrikeAzir
             var MinionList = new List<Obj_AI_Minion>();
             MinionList.AddRange(soldierattackminions);
             MinionList.AddRange(autoattackminions);
-            MinionList
+            MinionList =  MinionList
                     .Where(
                         minion =>
-                            minion.IsValidTarget())
+                            minion.IsValidTarget()
+                            && !MinionManager.IsWard(minion.CharData.BaseSkinName.ToLower()))
                             .OrderByDescending(minion => minion.CharData.BaseSkinName.Contains("Siege"))
                             .ThenBy(minion => minion.CharData.BaseSkinName.Contains("Super"))
                             .ThenBy(minion => minion.Health)
-                            .ThenByDescending(minion => minion.MaxHealth);
-            if (_orbwalker.ActiveMode == Orbwalking. OrbwalkingMode.LaneClear ||_orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.Mixed ||
-                   _orbwalker. ActiveMode ==Orbwalking. OrbwalkingMode.LastHit)
+                            .ThenByDescending(minion => minion.MaxHealth).ToList();
+            if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed ||
+                   _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit)
             {
-                foreach (var minion in MinionList)
+                foreach (var minion in autoattackminions)
                 {
-                    var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
-                    var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 70);
+                    var t = 0;// (int)(Player.AttackCastDelay * 1000) -200 + Game.Ping;
+                    var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 0);
 
-                    if (minion.Team != GameObjectTeam.Neutral && MinionManager.IsMinion(minion, true))
+                    if (minion.Team != GameObjectTeam.Neutral && !MinionManager.IsWard(minion.CharData.BaseSkinName.ToLower()))
                     {
                         if (predHealth > 0 && predHealth <= Player.GetAutoAttackDamage(minion, true))
                         {
                             return minion;
+                        }
+                    }
+                }
+                //foreach (var minion in soldierattackminions)
+                //{
+                //    var t = (int)(Player.AttackCastDelay * 1000) + Game.Ping;
+                //    var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 0);
+
+                //    if (minion.Team != GameObjectTeam.Neutral && !Orbwalking.IsWard(minion))
+                //    {
+                //        if (predHealth > 0 && predHealth <= Wdamage(minion))
+                //        {
+                //            return minion;
+                //        }
+                //    }
+                //}
+                foreach (var minions in splashautoattackminions)
+                {
+                    var t = 0;// (int)(Player.AttackCastDelay * 1000) - 200 + Game.Ping;
+                    var MainMinionPredHealth = HealthPrediction.GetHealthPrediction(minions.MainMinion, t, 0);
+                    if (minions.MainMinion.Team != GameObjectTeam.Neutral 
+                        && !MinionManager.IsWard(minions.MainMinion.CharData.BaseSkinName.ToLower()))
+                    {
+                        if (MainMinionPredHealth > 0 && MainMinionPredHealth <= Wdamage(minions.MainMinion))
+                        {
+                            return minions.MainMinion;
+                        }
+                    }
+                    foreach (var minion in minions.SplashAutoAttackMinions)
+                    {
+                        var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 0);
+                        if (minion.Team != GameObjectTeam.Neutral && !MinionManager.IsWard(minion.CharData.BaseSkinName.ToLower()))
+                        {
+                            if (minion.Health > 0 && minion.Health <= Wdamage(minion))
+                            {
+                                return minions.MainMinion;
+                            }
                         }
                     }
                 }
@@ -863,9 +953,31 @@ namespace HeavenSTrikeAzir
             /*Champions*/
             if (_orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit)
             {
-                var target = _orbwalker.GetTarget();
-                if (target is Obj_AI_Hero && target.IsValidTarget())
-                    return target;
+                if (enemies.Any())
+                {
+                    var target = enemies.OrderByDescending(x => x.Health).LastOrDefault();
+                    if (target.IsValidTarget())
+                        return target;
+                }
+                if (splashautoattackchampions.Any())
+                {
+                    var splashAutoAttackChampion = splashautoattackchampions
+                        .OrderByDescending(x => x.SplashAutoAttackChampions.MinOrDefault(y => y.Health).Health).LastOrDefault();
+                    if (splashAutoAttackChampion != null)
+                    {
+                        var target = splashAutoAttackChampion.MainMinion;
+                        if (target.IsValidTarget())
+                            return target;
+                    }
+                }
+                if (!enemies.Any() && !splashautoattackchampions.Any())
+                {
+                    var target = _orbwalker.GetTarget();
+                    if (target.IsValidTarget() && !target.IsZombie && target is Obj_AI_Hero)
+                    {
+                        return target;
+                    }
+                }
             }
             /*Jungle minions*/
             if (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
@@ -888,21 +1000,46 @@ namespace HeavenSTrikeAzir
             {
                 if (!ShouldWait())
                 {
-                    var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
-                    result = (from minion in
-                                  MinionList
-                                      .Where(minion => minion.IsValidTarget() && minion.CharData.BaseSkinName != "gangplankbarrel")
-                              let predHealth =
-                                  HealthPrediction.LaneClearHealthPrediction(
-                                      minion, (int)((Player.AttackDelay * 1000) * t), 70)
-                              where
-                                  predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
-                                  Math.Abs(predHealth - minion.Health) < float.Epsilon
-                              select minion).MinOrDefault(m => m.Health);
-
-                    if (result != null)
+                    var t = 0; // (int)(Player.AttackCastDelay * 1000) -200 + Game.Ping;
+                    var t2 = (int) Player.AttackDelay*1000;
+                    var arrangedsplash =
+                        splashautoattackminions.OrderByDescending(x => x.SplashAutoAttackMinions.Count());
+                    foreach (var minions in arrangedsplash)
                     {
-                        return result;
+                        var damage = Wdamage(minions.MainMinion);
+                        //var predHealths = new List<float>();
+                        //predHealths.Add(HealthPrediction.LaneClearHealthPrediction(minions.MainMinion, t + t2, 0));
+                        //foreach (var minion in minions.SplashAutoAttackMinions)
+                        //{
+                        //    predHealths.Add(HealthPrediction.LaneClearHealthPrediction(minion, t + t2, 0));
+                        //}
+                        //if (predHealths.All(x => x >= damage*2) )
+                        //    return minions.MainMinion;
+                        var allminions = new List<Obj_AI_Minion>();
+                        allminions.Add(minions.MainMinion);
+                        allminions.AddRange(minions.SplashAutoAttackMinions);
+                        if (
+                            allminions.All(
+                                x =>
+                                    HealthPrediction.LaneClearHealthPrediction(x, t + t2, 0) >= damage*2 ||
+                                    Math.Abs(HealthPrediction.LaneClearHealthPrediction(x, t + t2, 0) - x.Health) <=
+                                    float.Epsilon))
+                            return minions.MainMinion;
+                    }
+                    var arrangedattack = autoattackminions
+                        .Where(
+                            minion =>
+                                minion.IsValidTarget()
+                                && !MinionManager.IsWard(minion.CharData.BaseSkinName.ToLower()))
+                        .OrderByDescending(minion => minion.CharData.BaseSkinName.Contains("Siege"))
+                        .ThenBy(minion => minion.CharData.BaseSkinName.Contains("Super"))
+                        .ThenBy(minion => minion.Health)
+                        .ThenByDescending(minion => minion.MaxHealth).ToList();
+                    foreach (var minion in arrangedattack)
+                    {
+                        var predHealth = HealthPrediction.LaneClearHealthPrediction(minion, t + t2, 0);
+                        if (predHealth >= Player.GetAutoAttackDamage(minion)*2 || Math.Abs(predHealth - minion.Health) < float.Epsilon)
+                            return minion;
                     }
                 }
             }
@@ -911,7 +1048,8 @@ namespace HeavenSTrikeAzir
         }
         private static bool ShouldWait()
         {
-            var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
+            var attackcastdelay = Player.AttackCastDelay * 1000 + Game.Ping;
+            var attackdelay = Player.AttackDelay*1000;
             return
             (
                 autoattackminions
@@ -919,7 +1057,7 @@ namespace HeavenSTrikeAzir
                         minion =>
                             minion.IsValidTarget() && minion.Team != GameObjectTeam.Neutral &&
                             HealthPrediction.LaneClearHealthPrediction(
-                                minion, t, 70) <=
+                            minion, (int)attackcastdelay + (int)attackdelay*2, 0) <=
                             Player.GetAutoAttackDamage(minion))
                 ||
                 soldierattackminions
@@ -927,13 +1065,40 @@ namespace HeavenSTrikeAzir
                         minion =>
                             minion.IsValidTarget() && minion.Team != GameObjectTeam.Neutral &&
                             HealthPrediction.LaneClearHealthPrediction(
-                                minion, t, 70) <=
-                            _w.GetDamage(minion))
+                            minion, (int)attackcastdelay + (int)attackdelay*2, 0) <=
+                            Wdamage(minion))
+                ||
+                splashautoattackminions
+                    .Any(
+                        minions => minions.SplashAutoAttackMinions
+                            .Any(
+                                minion =>
+                                    minion.IsValidTarget() && minion.Team != GameObjectTeam.Neutral &&
+                                    HealthPrediction.LaneClearHealthPrediction(
+                                    minion, (int)attackcastdelay + (int)attackdelay*2, 0) <=
+                                    Wdamage(minion)))
             );
           
         }
         private static void azirsoldier()
         {
+            var soldierandtargetminion = new List<SoldierAndTargetMinion>();
+            var minions = ObjectManager.Get<Obj_AI_Minion>().Where(x => x.IsValidTarget()
+                && x.CharData.BaseSkinName != "gangplankbarrel" && !MinionManager.IsWard(x.CharData.BaseSkinName.ToLower()));
+            var minionspredictedposition = new List<MinionPredictedPosition>();
+            foreach(var x  in  minions)
+            {
+                minionspredictedposition
+                    .Add(new MinionPredictedPosition
+                        (x, Prediction.GetPrediction(x, Player.AttackCastDelay + Game.Ping / 1000).UnitPosition));
+            }
+            var championpredictedposition = new List<ChampionPredictedPosition>();
+            foreach (var x in HeroManager.Enemies.Where(x=>x.IsValidTarget()))
+            {
+                championpredictedposition
+                    .Add(new ChampionPredictedPosition
+                        (x, Prediction.GetPrediction(x, Player.AttackCastDelay + Game.Ping / 1000).UnitPosition));
+            }
             soldier = new List<GameObject>();
             foreach (var obj in ObjectManager.Get<GameObject>().Where(x => x.Name == "Azir_Base_P_Soldier_Ring.troy"))
             {
@@ -946,30 +1111,76 @@ namespace HeavenSTrikeAzir
                     enemies.Add(hero);
             }
             soldierattackminions = new List<Obj_AI_Minion>();
-            foreach (var minion in ObjectManager.Get<Obj_AI_Minion>().Where(x => x.IsValidTarget()))
+            foreach (var minion in minions)
             {
-                if (soldier.Any(x => x.Position.Distance(minion.Position) <= 300 + minion.BoundingRadius && Player.Distance(x.Position) <= 900))
+                var Soldiers = soldier.Where
+                    (x => x.Position.Distance(minion.Position) <= 300 + minion.BoundingRadius && Player.Distance(x.Position) <= 900)
+                    .ToList();
+                if (Soldiers.Any())
+                {
                     soldierattackminions.Add(minion);
+                    soldierandtargetminion.Add(new SoldierAndTargetMinion(minion, Soldiers));
+                }
             }
             autoattackminions = new List<Obj_AI_Minion>();
-            foreach (var minion in ObjectManager.Get<Obj_AI_Minion>().Where(x => x.IsValidTarget(Orbwalking.GetRealAutoAttackRange(x))))
+            foreach (var minion in minions.Where(x => x.IsValidTarget(Orbwalking.GetRealAutoAttackRange(x))))
             {
                 if (!soldierattackminions.Any(x => x.NetworkId == minion.NetworkId))
                     autoattackminions.Add(minion);
+            }
+            splashautoattackchampions = new List<SplashAutoAttackChampion>();
+            foreach (var mainminion in soldierandtargetminion)
+            {
+                var mainminionpredictedposition =
+                    Prediction.GetPrediction(mainminion.Minion, Player.AttackCastDelay + Game.Ping / 1000).UnitPosition;
+                List<Obj_AI_Hero> splashchampions = new List<Obj_AI_Hero>();
+                foreach (var hero in championpredictedposition)
+                {
+                    foreach (var mainminionsoldier in mainminion.Soldier)
+                        if (Geometry.Distance(hero.Position.To2D(), mainminionsoldier.Position.To2D(),
+                            mainminionsoldier.Position.To2D().Extend(mainminionpredictedposition.To2D(), 450), true)
+                            <= hero.Hero.BoundingRadius + 50)
+                        {
+                            splashchampions.Add(hero.Hero);
+                        }
+                }
+                if (splashchampions.Any())
+                    splashautoattackchampions.Add(new SplashAutoAttackChampion(mainminion.Minion, splashchampions));
+            }
+            splashautoattackminions = new List<SplashAutoAttackMinion>();
+            foreach (var mainminion in soldierandtargetminion)
+            {
+                var mainminionpredictedposition = 
+                    Prediction.GetPrediction(mainminion.Minion,Player.AttackCastDelay + Game.Ping / 1000).UnitPosition;
+                List<Obj_AI_Minion> splashminions = new List<Obj_AI_Minion>();
+                foreach (var minion in minionspredictedposition)
+                {
+                    foreach (var mainminionsoldier in mainminion.Soldier)
+                    if (Geometry.Distance(minion.Position.To2D(),mainminionsoldier.Position.To2D(),
+                        mainminionsoldier.Position.To2D().Extend(mainminionpredictedposition.To2D(),450),true) 
+                        <= minion.Minion.BoundingRadius +50)
+                    {
+                        splashminions.Add(minion.Minion);
+                        break;
+                    }
+                }
+                splashautoattackminions.Add(new SplashAutoAttackMinion(mainminion.Minion, splashminions));
             }
         }
         public static bool CanDoAttack()
         {
             if (lastAA <= Utils.TickCount)
             {
-                return Utils.GameTimeTickCount + Game.Ping / 2 + 25 >= lastAA + Player.AttackDelay * 1000;
+                return Utils.GameTimeTickCount + Game.Ping / 2 + 25 >= lastAA + Player.AttackDelay * 1000
+                    && Utils.GameTimeTickCount - lastAAcommandTick >= Game.Ping + 250;
             }
 
             return false;
         }
         public static bool CanMove()
         {
-            return (Utils.GameTimeTickCount + Game.Ping / 2 >= lastAA + Player.AttackCastDelay * 1000 + 80);
+            return (Utils.GameTimeTickCount + Game.Ping / 2 >= lastAA + Player.AttackCastDelay * 1000 + 80)
+                                    && Utils.GameTimeTickCount - lastAAcommandTick >= Game.Ping + 250 ;
         }
         private static bool  Qisready()
         {
@@ -980,6 +1191,17 @@ namespace HeavenSTrikeAzir
             else
                 return false;
         }
+        private static void AttackTarget(AttackableUnit target)
+        {
+            lastAAcommandTick = Utils.GameTimeTickCount;
+            Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+        }
         private static int Qtick;
+
+        private static double Wdamage(Obj_AI_Base target)
+        {
+            return Player.CalcDamage(target, Damage.DamageType.Magical,
+                45 + 5*Player.Level + 0.6*Player.FlatMagicDamageMod);
+        }
     }
 }
