@@ -269,7 +269,7 @@ namespace HeavenSTrikeAzir
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
-            //Game.PrintChat(_e.Instance.Cooldown.ToString());
+            //Game.PrintChat(Player.SpellTrainingPoints.ToString());
             // azir soldier
             azirsoldier();
             //if (soldier.Any())
@@ -1201,7 +1201,7 @@ namespace HeavenSTrikeAzir
         private static double Wdamage(Obj_AI_Base target)
         {
             return Player.CalcDamage(target, Damage.DamageType.Magical,
-                45 + 5*Player.Level + 0.6*Player.FlatMagicDamageMod);
+                45 + 5*(Player.Level-Player.SpellTrainingPoints) + 0.6*Player.FlatMagicDamageMod);
         }
     }
 }
