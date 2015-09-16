@@ -1201,7 +1201,12 @@ namespace HeavenSTrikeAzir
         private static double Wdamage(Obj_AI_Base target)
         {
             return Player.CalcDamage(target, Damage.DamageType.Magical,
-                45 + 5*(Player.Level-Player.SpellTrainingPoints) + 0.6*Player.FlatMagicDamageMod);
+                        new double[]
+                        {
+                            50, 55, 60, 65, 70, 75, 80, 85, 90, 100, 110, 120, 130,
+                            140, 150, 160, 170, 180
+                        }[Player.Level - Player.SpellTrainingPoints - 1] + 0.6 * Player.FlatMagicDamageMod);
         }
+        
     }
 }
