@@ -73,6 +73,8 @@ namespace HeavenSTrikeAzir
 
         private static float lastAA;
 
+        private static bool OnFinishAttack;
+
         private static List<GameObject> soldier = new List<GameObject>();
 
         private static List<Obj_AI_Hero> enemies = new List<Obj_AI_Hero>();
@@ -163,11 +165,19 @@ namespace HeavenSTrikeAzir
             //Listen to events
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnUpdate += Game_OnGameUpdate;
+            Obj_AI_Base.OnDoCast += Obj_AI_Base_OnDoCast;
             //Orbwalking.AfterAttack += Orbwalking_AfterAttack;
             Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             AntiGapcloser.OnEnemyGapcloser += AntiGapcloser_OnEnemyGapcloser;
         }
 
+        private static void Obj_AI_Base_OnDoCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (!sender.IsMe)
+                return;
+            if (args.SData.IsAutoAttack())
+                OnFinishAttack = true;
+        }
 
         private static void AntiGapcloser_OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
@@ -1179,6 +1189,8 @@ namespace HeavenSTrikeAzir
         }
         public static bool CanMove()
         {
+            if (OnFinishAttack)
+                return true;
             return (Utils.GameTimeTickCount + Game.Ping / 2 >= lastAA + Player.AttackCastDelay * 1000 + 80)
                                     && Utils.GameTimeTickCount - lastAAcommandTick >= Game.Ping + 250 ;
         }
@@ -1194,6 +1206,7 @@ namespace HeavenSTrikeAzir
         private static void AttackTarget(AttackableUnit target)
         {
             lastAAcommandTick = Utils.GameTimeTickCount;
+            OnFinishAttack = false;
             Player.IssueOrder(GameObjectOrder.AttackUnit, target);
         }
         private static int Qtick;
