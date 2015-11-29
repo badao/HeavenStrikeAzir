@@ -1205,6 +1205,7 @@ namespace HeavenSTrikeAzir
         }
         private static void AttackTarget(AttackableUnit target)
         {
+            Orbwalking.LastAATick = Utils.GameTimeTickCount + Game.Ping;
             lastAAcommandTick = Utils.GameTimeTickCount;
             OnFinishAttack = false;
             Player.IssueOrder(GameObjectOrder.AttackUnit, target);
