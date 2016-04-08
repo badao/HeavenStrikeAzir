@@ -41,14 +41,14 @@ namespace HeavenStrikeAzir
             if (!sender.IsMe)
                 return;
             if (args.SData.IsAutoAttack())
-                OnFinishAttack = true;
+                Utility.DelayAction.Add(50 - Game.Ping, () => OnFinishAttack = true);
         }
 
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
             if (args.SData.Name.ToLower().Contains("attack"))
-                lastAA = Utils.GameTimeTickCount - Game.Ping / 2;
+                lastAA = Utils.GameTimeTickCount - Game.Ping / 2 + 50;
             if (args.SData.Name.ToLower().Contains("attacksoldier"))
                 OnFinishAttack = true;
         }
