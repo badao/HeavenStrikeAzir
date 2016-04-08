@@ -54,8 +54,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AzirCombo.cs" />
+    <Compile Include="AzirFarm.cs" />
+    <Compile Include="AzirHarass.cs" />
+    <Compile Include="GameObjects.cs" />
+    <Compile Include="Insec.cs" />
+    <Compile Include="JumpToMouse.cs" />
+    <Compile Include="Minion.cs" />
+    <Compile Include="OrbwalkCommands.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Soldiers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
