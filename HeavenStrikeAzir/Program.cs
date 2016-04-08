@@ -60,7 +60,7 @@ namespace HeavenStrikeAzir
             Menu spellMenu = _menu.AddSubMenu(new Menu("Spells", "Spells"));
             spellMenu.AddItem(new MenuItem("EQmouse", "E Q to mouse").SetValue(new KeyBind('G', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insec", "Insec Selected").SetValue(new KeyBind('Y', KeyBindType.Press)));
-            spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse","last right click"},0)));
+            spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse","last key press"},0)));
             spellMenu.AddItem(new MenuItem("insecpolar", "Insec point key").SetValue(new KeyBind('T', KeyBindType.Press)));
             //combo
             Menu Combo = spellMenu.AddSubMenu(new Menu("Combo", "Combo"));
