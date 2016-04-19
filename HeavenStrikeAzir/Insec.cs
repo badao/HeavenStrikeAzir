@@ -87,8 +87,6 @@ namespace HeavenStrikeAzir
             {
                 OrbwalkCommands.MoveTo(Game.CursorPos);
             }
-            if (Environment.TickCount - LastJump < 1500)
-                return;
             if (!InsecPoint.IsValid())
                 return;
             var target = TargetSelector.GetSelectedTarget();
@@ -96,56 +94,6 @@ namespace HeavenStrikeAzir
                 return;
             if (!Program._r2.IsReady())
                 return;
-
-            //case 2
-            var sold2 = Soldiers.soldier
-                    .Where(x => Player.Distance(x.Position) <= 1100)
-                    .OrderBy(x => x.Position.Distance(target.Position)).FirstOrDefault();
-            if (sold2 != null && Program.Eisready)
-            {
-                Vector2 start2 = sold2.Position.To2D().Extend(InsecPoint.To2D(), -0);
-                Vector2 end2 = start2.Extend(Player.Position.To2D(), 750);
-                float width2 = Program._r.Level == 3 ? 125 * 6 / 2 :
-                            Program._r.Level == 2 ? 125 * 5 / 2 :
-                            125 * 4 / 2;
-                var Rect2 = new Geometry.Polygon.Rectangle(start2, end2, width2 - 100);
-                var Predicted2 = Prediction.GetPrediction(target,
-                    Game.Ping / 1000f + Player.Distance(sold2.Position) / 1700f - 0.15f).UnitPosition;
-                if (Rect2.IsInside(target.Position) && Rect2.IsInside(Predicted2))
-                {
-                    var time = sold2.Position.Distance(Player.Position) * 1000 / 1700;
-                    Program._e.Cast(sold2.Position);
-                    Utility.DelayAction.Add((int)time + 150, () => Program._r2.Cast(InsecPoint));
-                    Utility.DelayAction.Add((int)time - 150, () => Program._q2.Cast(InsecPoint));
-                    LastJump = Environment.TickCount;
-                    return;
-                }
-            }
-
-            //case 3
-            var posW3 = Player.Position.Extend(target.Position, Program._w.Range);
-            if (Program.Eisready && Program._w.IsReady())
-            {
-                Vector2 start3 = posW3.To2D().Extend(InsecPoint.To2D(), 0);
-                Vector2 end3 = start3.Extend(Player.Position.To2D(), 750);
-                float width3 = Program._r.Level == 3 ? 125 * 6 / 2 :
-                            Program._r.Level == 2 ? 125 * 5 / 2 :
-                            125 * 4 / 2;
-                var Rect3 = new Geometry.Polygon.Rectangle(start3, end3, width3 - 100);
-                var Predicted3 = Prediction.GetPrediction(target,
-                    Game.Ping / 1000f + Player.Distance(posW3) / 1700f - 0.15f).UnitPosition;
-                if (Rect3.IsInside(target.Position) && Rect3.IsInside(Predicted3))
-                {
-                    var time = posW3.Distance(Player.Position) * 1000 / 1700;
-                    Program._w.Cast(posW3);
-                    Utility.DelayAction.Add(50 + Game.Ping - 8, () => Program._e.Cast(posW3));
-                    Utility.DelayAction.Add(500 + Game.Ping - 8 + 150, () => Program._r2.Cast(InsecPoint));
-                    Utility.DelayAction.Add(500 + Game.Ping - 8 - 150, () => Program._q2.Cast(InsecPoint));
-                    LastJump = Environment.TickCount;
-                    return;
-                }
-            }
-
             //case 1
             Vector2 start1 = Player.Position.To2D().Extend(InsecPoint.To2D(), -300);
             Vector2 end1 = start1.Extend(Player.Position.To2D(), 750);
@@ -157,67 +105,102 @@ namespace HeavenStrikeAzir
             if (Rect1.IsInside(target.Position) && Rect1.IsInside(Predicted1))
             {
                 Program._r2.Cast(InsecPoint);
-                LastJump = Environment.TickCount;
                 return;
             }
-
-            //case 4
-            if (Program.Eisready && Program.Qisready())
-            {
-                var sold4 = Soldiers.soldier
+            if (Environment.TickCount - LastJump < 1500)
+                return;
+            if (!Program._e.IsReady())
+                return;
+            //case 2
+            var sold2 = Soldiers.soldier
                     .Where(x => Player.Distance(x.Position) <= 1100)
                     .OrderBy(x => x.Position.Distance(target.Position)).FirstOrDefault();
-                var posW4 = Player.Position.Extend(target.Position, Program._w.Range);
-                if (sold4 != null && sold4.Position.Distance(target.Position) <= posW4.Distance(target.Position))
+            if (sold2 != null)
+            {
+                if (!Program._q2.IsReady())
                 {
-                    var time = (Player.Distance(sold4.Position) + sold4.Position.Distance(target.Position)) / 1700f;
-                    var Predicted4 = Prediction.GetPrediction(target,
-                        Game.Ping / 1000f + time - 0.15f).UnitPosition;
-                    if (target.Distance(sold4.Position) <= 875 - 100)
+                    var time = Player.Position.Distance(sold2.Position) / 1700f;
+                    var predicted2 = Prediction.GetPrediction(target, time).UnitPosition;
+                    Vector2 start2 = sold2.Position.To2D().Extend(InsecPoint.To2D(), -300);
+                    Vector2 end2 = start2.Extend(InsecPoint.To2D(), 750);
+                    float width2 = Program._r.Level == 3 ? 125 * 6 / 2 :
+                                Program._r.Level == 2 ? 125 * 5 / 2 :
+                                125 * 4 / 2;
+                    var Rect2 = new Geometry.Polygon.Rectangle(start2, end2, width2 - 100);
+                    if (Rect2.IsInside(target.Position) && Rect2.IsInside(predicted2))
                     {
-                        Vector2 start4 = target.Position.To2D().Extend(InsecPoint.To2D(), -300);
-                        Vector2 end4 = start4.Extend(Player.Position.To2D(), 750);
-                        float width4 = Program._r.Level == 3 ? 125 * 6 / 2 :
+                        Program._e.Cast(sold2.Position);
+                        LastJump = Environment.TickCount;
+                        return;
+                    }
+                }
+                if (Program._q2.IsReady() && target.Distance(sold2.Position) <= 875 - 100)
+                {
+                    var time = (Player.Distance(sold2.Position) + sold2.Position.Distance(target.Position)) / 1700f;
+                    var predicted2 = Prediction.GetPrediction(target, time).UnitPosition;
+                    Vector2 start2 = target.Position.To2D().Extend(InsecPoint.To2D(), -300);
+                    Vector2 end2 = start2.Extend(InsecPoint.To2D(), 750);
+                    float width2 = Program._r.Level == 3 ? 125 * 6 / 2 :
+                                Program._r.Level == 2 ? 125 * 5 / 2 :
+                                125 * 4 / 2;
+                    var Rect2 = new Geometry.Polygon.Rectangle(start2, end2, width2 - 100);
+                    if (Rect2.IsInside(target.Position) && Rect2.IsInside(predicted2))
+                    {
+                        var timetime = sold2.Position.Distance(Player.Position) * 1000 / 1700;
+                        Program._e.Cast(sold2.Position);
+                        Utility.DelayAction.Add((int)timetime - 150 - Program.EQdelay, () => Program._q2.Cast(target.Position));
+                        LastJump = Environment.TickCount;
+                        return;
+                    }
+                }
+            }
+            if(Program._w.IsReady())
+            {
+                var posWs = GeoAndExten.GetWsPosition(target.Position.To2D()).Where(x => x != null);
+                foreach (var posW in posWs)
+                {
+                    if (!Program._q2.IsReady())
+                    {
+                        var time = Player.Position.To2D().Distance((Vector2)posW) / 1700f + 0.3f;
+                        var predicted2 = Prediction.GetPrediction(target, time).UnitPosition;
+                        Vector2 start2 = ((Vector2)posW).Extend(InsecPoint.To2D(), -300);
+                        Vector2 end2 = start2.Extend(InsecPoint.To2D(), 750);
+                        float width2 = Program._r.Level == 3 ? 125 * 6 / 2 :
                                     Program._r.Level == 2 ? 125 * 5 / 2 :
                                     125 * 4 / 2;
-                        var Rect4 = new Geometry.Polygon.Rectangle(start4, end4, width4 - 100);
-                        if (Rect4.IsInside(Predicted4))
+                        var Rect2 = new Geometry.Polygon.Rectangle(start2, end2, width2 - 100);
+                        if (Rect2.IsInside(target.Position) && Rect2.IsInside(predicted2))
                         {
-                            var timetime = sold4.Position.Distance(Player.Position) * 1000 / 1700;
-                            Program._e.Cast(sold4.Position);
-                            Utility.DelayAction.Add((int)timetime - 150, () => Program._q2.Cast(target.Position));
-                            Utility.DelayAction.Add((int)(time * 1000) + 300 - 150, () => Program._r2.Cast(InsecPoint));
+                            var timetime = ((Vector2)posW).Distance(Player.Position) * 1000 / 1700;
+                            Program._w.Cast(Player.Position.To2D().Extend((Vector2)posW, Program._w.Range));
+                            Utility.DelayAction.Add(0, () => Program._e.Cast((Vector2)posW));
+                            Utility.DelayAction.Add((int)timetime + 300 - 150 - Program.EQdelay, () => Program._q2.Cast(target.Position));
                             LastJump = Environment.TickCount;
                             return;
                         }
                     }
-                }
-                else if (Program._w.IsReady())
-                {
-                    var time = Player.Distance(target.Position) / 1700f;
-                    var Predicted4 = Prediction.GetPrediction(target,
-                        Game.Ping / 1000f + time - 0.15f).UnitPosition;
-                    if (target.Distance(Player.Position) <= 875 + 450 - 100)
+                    if (Program._q2.IsReady() && target.Distance((Vector2)posW) <= 875 - 100)
                     {
-                        Vector2 start4 = target.Position.To2D().Extend(InsecPoint.To2D(), -300);
-                        Vector2 end4 = start4.Extend(Player.Position.To2D(), 750);
-                        float width4 = Program._r.Level == 3 ? 125 * 6 / 2 :
+                        var time = (Player.Distance((Vector2)posW) + ((Vector2)posW).Distance(target.Position)) / 1700f + 0.3f;
+                        var predicted2 = Prediction.GetPrediction(target, time).UnitPosition;
+                        Vector2 start2 = target.Position.To2D().Extend(InsecPoint.To2D(), -300);
+                        Vector2 end2 = start2.Extend(InsecPoint.To2D(), 750);
+                        float width2 = Program._r.Level == 3 ? 125 * 6 / 2 :
                                     Program._r.Level == 2 ? 125 * 5 / 2 :
                                     125 * 4 / 2;
-                        var Rect4 = new Geometry.Polygon.Rectangle(start4, end4, width4 - 100);
-                        if (Rect4.IsInside(Predicted4))
+                        var Rect2 = new Geometry.Polygon.Rectangle(start2, end2, width2 - 100);
+                        if (Rect2.IsInside(target.Position) && Rect2.IsInside(predicted2))
                         {
-                            Program._w.Cast(posW4);
-                            Utility.DelayAction.Add(50 + Game.Ping - 8, () => Program._e.Cast(posW4));
-                            Utility.DelayAction.Add((int)(time * 1000) + 300 + Game.Ping - 8, () => Program._r2.Cast(InsecPoint));
-                            Utility.DelayAction.Add(500 + Game.Ping - 8, () => Program._q2.Cast(target.Position));
+                            var timetime = ((Vector2)posW).Distance(Player.Position) * 1000 / 1700;
+                            Program._w.Cast(Player.Position.To2D().Extend((Vector2)posW, Program._w.Range));
+                            Utility.DelayAction.Add(0, () => Program._e.Cast((Vector2)posW));
+                            Utility.DelayAction.Add((int)timetime + 300 - 150 - Program.EQdelay, () => Program._q2.Cast(target.Position));
                             LastJump = Environment.TickCount;
                             return;
                         }
                     }
                 }
             }
-
 
         }
     }

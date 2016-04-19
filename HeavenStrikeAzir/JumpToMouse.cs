@@ -48,39 +48,45 @@ namespace HeavenStrikeAzir
                 var sold = Soldiers.soldier
                     .Where(x => Player.Distance(x.Position) <= 1100)
                     .OrderBy(x => x.Position.Distance(Game.CursorPos)).FirstOrDefault();
-                var posW = Player.Position.Extend(position, Program._w.Range);
-                if (distance < 875)
+                var posWs = GeoAndExten.GetWsPosition(position.To2D()).Where(x => x != null);
+                // case 1
+                if (sold != null && sold.Position.Distance(position) <= 875)
                 {
-                    if (sold != null)
-                    {
-                        Program._e.Cast(sold.Position);
-                        Utility.DelayAction.Add(50, () => Program._q.Cast(position));
-                        LastJump = Environment.TickCount;
-                    }
-                    else if (Program._w.IsReady())
-                    {
-                        Program._w.Cast(posW);
-                        Utility.DelayAction.Add(50 + Game.Ping - 8, () => Program._e.Cast(posW));
-                        Utility.DelayAction.Add(500 + Game.Ping - 8, () => Program._q.Cast(position));
-                        LastJump = Environment.TickCount;
-                    }
+                    var time = sold.Position.Distance(Player.Position) * 1000 / 1700;
+                    Program._e.Cast(sold.Position);
+                    Utility.DelayAction.Add((int)time - 150 - Program.EQdelay, () => Program._q2.Cast(position));
+                    LastJump = Environment.TickCount;
+                    return;
                 }
-                else
+                // case 2
+                var posW2 = posWs.FirstOrDefault(x => ((Vector2)x).Distance(position) <= 875);
+                if (Program._w.IsReady() && posW2 != null)
                 {
-                    if (sold != null && sold.Position.Distance(position) <= posW.Distance(position))
-                    {
-                        var time = sold.Position.Distance(Player.Position) * 1000 / 1700;
-                        Program._e.Cast(sold.Position);
-                        Utility.DelayAction.Add((int)time - 150, () => Program._q.Cast(position));
-                        LastJump = Environment.TickCount;
-                    }
-                    else if (Program._w.IsReady())
-                    {
-                        Program._w.Cast(posW);
-                        Utility.DelayAction.Add(50 + Game.Ping - 8, () => Program._e.Cast(posW));
-                        Utility.DelayAction.Add(500 + Game.Ping - 8, () => Program._q.Cast(position));
-                        LastJump = Environment.TickCount;
-                    }
+                    var time = ((Vector2)posW2).Distance(Player.Position) * 1000 / 1700;
+                    Program._w.Cast(Player.Position.To2D().Extend((Vector2)posW2,Program._w.Range));
+                    Utility.DelayAction.Add(0, () => Program._e.Cast((Vector2)posW2));
+                    Utility.DelayAction.Add((int)time + 300 - 150 - Program.EQdelay, () => Program._q2.Cast(position));
+                    LastJump = Environment.TickCount;
+                    return;
+                }
+                // case 3
+                var posW3 = posWs.OrderBy(x => ((Vector2)x).Distance(position)).FirstOrDefault();
+                if (sold != null && (posW3 == null || sold.Position.Distance(position) <= ((Vector2)posW3).Distance(position)))
+                {
+                    var time = sold.Position.Distance(Player.Position) * 1000 / 1700;
+                    Program._e.Cast(sold.Position);
+                    Utility.DelayAction.Add((int)time - 150 - Program.EQdelay, () => Program._q2.Cast(position));
+                    LastJump = Environment.TickCount;
+                    return;
+                }
+                if (Program._w.IsReady() && posW3 != null)
+                {
+                    var time = ((Vector2)posW3).Distance(Player.Position) * 1000 / 1700;
+                    Program._w.Cast(Player.Position.To2D().Extend((Vector2)posW3, Program._w.Range));
+                    Utility.DelayAction.Add(0, () => Program._e.Cast((Vector2)posW3));
+                    Utility.DelayAction.Add((int)time + 300 - 150 - Program.EQdelay, () => Program._q2.Cast(position));
+                    LastJump = Environment.TickCount;
+                    return;
                 }
 
             }

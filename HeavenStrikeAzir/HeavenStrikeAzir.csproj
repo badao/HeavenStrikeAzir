@@ -58,6 +58,7 @@
     <Compile Include="AzirFarm.cs" />
     <Compile Include="AzirHarass.cs" />
     <Compile Include="GameObjects.cs" />
+    <Compile Include="GeoAndExten.cs" />
     <Compile Include="Insec.cs" />
     <Compile Include="JumpToMouse.cs" />
     <Compile Include="Minion.cs" />

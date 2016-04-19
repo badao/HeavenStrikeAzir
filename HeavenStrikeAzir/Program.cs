@@ -58,6 +58,7 @@ namespace HeavenStrikeAzir
             TargetSelector.AddToMenu(ts);
             //spell menu
             Menu spellMenu = _menu.AddSubMenu(new Menu("Spells", "Spells"));
+            spellMenu.AddItem(new MenuItem("EQdelay", "EQ lower delay").SetValue(new Slider(100,0,300)));
             spellMenu.AddItem(new MenuItem("EQmouse", "E Q to mouse").SetValue(new KeyBind('G', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insec", "Insec Selected").SetValue(new KeyBind('Y', KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("insecmode", "Insec Mode").SetValue(new StringList( new [] {"nearest ally","nearest turret","mouse","last key press"},0)));
@@ -118,6 +119,7 @@ namespace HeavenStrikeAzir
                 if (target.IsValidTarget(250)) _r.Cast(target.Position);
             }
         }
+        public static int EQdelay { get{ return _menu.Item("EQdelay").GetValue<Slider>().Value; } }
         public static bool drawinsecLine { get{ return _menu.Item(drawInsec).GetValue<bool>(); } }
         public static uint insecpointkey { get{return _menu.Item("insecpolar").GetValue<KeyBind>().Key; } }
         public static bool eqmouse { get { return _menu.Item("EQmouse").GetValue<KeyBind>().Active; } }

@@ -67,6 +67,8 @@ namespace HeavenStrikeAzir
         {
             if (Utils.GameTimeTickCount - lastMovecommandTick < 150)
                 return;
+            if (Player.Position.Distance(Position) <= 80)
+                return;
             Player.IssueOrder(GameObjectOrder.MoveTo, Position);
             lastMovecommandTick = Utils.GameTimeTickCount;
         }
