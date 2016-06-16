@@ -220,7 +220,7 @@ namespace HeavenStrikeAzir
                         {
                             50, 55, 60, 65, 70, 75, 80, 85, 90, 100, 110, 120, 130,
                             140, 150, 160, 170, 180
-                        }[Player.Level - Player.SpellTrainingPoints - 1] + 0.6 * Player.FlatMagicDamageMod);
+                        }[Player.Level - 1] + 0.6 * Player.FlatMagicDamageMod);
         }
         
     }
