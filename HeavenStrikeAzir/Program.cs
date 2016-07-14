@@ -169,6 +169,10 @@ namespace HeavenStrikeAzir
                 Render.Circle.DrawCircle(Player.Position, _q.Range, Color.Yellow);
             if (_menu.Item(drawW).GetValue<bool>())
                 Render.Circle.DrawCircle(Player.Position, _w.Range, Color.Yellow);
+            //foreach (var soldier in Soldiers.soldier)
+            //{
+            //    Render.Circle.DrawCircle(soldier.Position, 200, Color.Yellow);
+            //}
         }
 
         private static void Auto()
@@ -218,8 +222,7 @@ namespace HeavenStrikeAzir
             return Player.CalcDamage(target, Damage.DamageType.Magical,
                         new double[]
                         {
-                            50, 55, 60, 65, 70, 75, 80, 85, 90, 100, 110, 120, 130,
-                            140, 150, 160, 170, 180
+                            50 , 52 , 54 , 56 , 58 , 60 , 63 , 66 , 69 , 72 , 75 , 85 , 95 , 110 , 125 , 140 , 155 , 170
                         }[Player.Level - 1] + 0.6 * Player.FlatMagicDamageMod);
         }
         

@@ -39,18 +39,23 @@ namespace HeavenStrikeAzir
         private static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
             if (!sender.IsMe) return;
-            if (args.Slot == SpellSlot.W)
+            //Game.PrintChat(args.SData.Name);
+            if (/*args.Slot == SpellSlot.W*/args.SData.Name == "AzirW")
                 LastWTick = Environment.TickCount;
         }
 
         private static void GameObject_OnCreate(GameObject sender, EventArgs args)
         {
+            //if (sender.Name.ToLower().Contains("azir"))
+            //    Game.PrintChat(sender.Name + " oncreate");   
             if (sender.Name == "Azir_Base_P_Soldier_Ring.troy" && Math.Abs(Environment.TickCount - LastWTick) <= 250)
                 soldier.Add(sender);
         }
 
         private static void GameObject_OnDelete(GameObject sender, EventArgs args)
         {
+            //if (sender.Name.ToLower().Contains("azir"))
+            //    Game.PrintChat(sender.Name + " ondelete");
             if (sender.Name == "Azir_Base_P_Soldier_Ring.troy")
                 soldier.RemoveAll(x => x.NetworkId == sender.NetworkId);
         }

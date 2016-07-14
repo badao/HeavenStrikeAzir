@@ -142,7 +142,8 @@ namespace HeavenStrikeAzir
             {
                 foreach (var minion in Soldiers.autoattackminions)
                 {
-                    var t = 0;
+                    //var t = 0;
+                    var t = (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2;
                     var predHealth = HealthPrediction.GetHealthPrediction(minion, t, 0);
 
                     if (minion.Team != GameObjectTeam.Neutral)
