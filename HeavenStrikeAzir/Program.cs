@@ -25,7 +25,7 @@ namespace HeavenStrikeAzir
         public static bool Eisready { get { return Player.Mana >= _e.Instance.ManaCost && Utils.GameTimeTickCount - ecount >= _e.Instance.Cooldown * 1000f; } }
 
         public static string
-            drawQ = "Draw Q", drawW = "Draw W", drawQE = "Draw Q+E", drawInsec = "Draw Insec";
+            drawQ = "Draw Q", drawW = "Draw W", drawQE = "Draw Q+E", drawInsec = "Draw Insec", drawSoldierAA = "Draw Soldier Attack Range" , drawFly = "Draw EQ Range";
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -83,6 +83,8 @@ namespace HeavenStrikeAzir
             Menu Draw = _menu.AddSubMenu(new Menu("Drawing", "Drawing"));
             Draw.AddItem(new MenuItem(drawQ, drawQ).SetValue(true));
             Draw.AddItem(new MenuItem(drawW, drawW).SetValue(true));
+            Draw.AddItem(new MenuItem(drawSoldierAA, drawSoldierAA).SetValue(true));
+            Draw.AddItem(new MenuItem(drawFly, drawFly).SetValue(true));
             Draw.AddItem(new MenuItem(drawInsec, drawInsec).SetValue(true));
             //Attach to root
             _menu.AddToMainMenu();
@@ -169,6 +171,16 @@ namespace HeavenStrikeAzir
                 Render.Circle.DrawCircle(Player.Position, _q.Range, Color.Yellow);
             if (_menu.Item(drawW).GetValue<bool>())
                 Render.Circle.DrawCircle(Player.Position, _w.Range, Color.Yellow);
+            if (_menu.Item(drawSoldierAA).GetValue<bool>())
+            {
+                Render.Circle.DrawCircle(Player.Position, 925, Color.Red);
+                foreach (var sold in Soldiers.soldier.Where(x => x.Position.Distance(Player.Position) <= 925))
+                {
+                    Render.Circle.DrawCircle(sold.Position, 300, Color.Red);
+                }
+            }
+            if (_menu.Item(drawFly).GetValue<bool>())
+                Render.Circle.DrawCircle(Player.Position, 875 + 300 - 100, Color.Pink);
             //foreach (var soldier in Soldiers.soldier)
             //{
             //    Render.Circle.DrawCircle(soldier.Position, 200, Color.Yellow);
